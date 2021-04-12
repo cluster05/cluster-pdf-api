@@ -22,7 +22,7 @@ import { MergeDTO } from './dto/merge.dto';
 
 @Controller('document')
 export class DocumentController {
-  constructor(private documentService: DocumentService) {}
+  constructor(private documentService: DocumentService) { }
 
   @Post('/convert')
   convert(@Body() convertDTO: ConvertDTO) {
@@ -50,7 +50,7 @@ export class DocumentController {
   )
   createFile(@UploadedFile() file: Express.Multer.File) {
     return {
-      url: 'http://localhost:3000/document/' + file.filename,
+      url: 'http://localhost:8080/document/' + file.filename,
     };
   }
 
