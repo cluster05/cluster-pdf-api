@@ -1,6 +1,9 @@
 import {
   Controller,
+  Delete,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Post,
   Res,
@@ -11,6 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { unlinkSync } from 'fs';
 
 @Controller('document')
 export class DocumentController {
@@ -28,7 +32,7 @@ export class DocumentController {
       }),
     }),
   )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
+  createFile(@UploadedFile() file: Express.Multer.File) {
     return {
       url: 'http://localhost:3000/document/' + file.filename,
     };
@@ -37,5 +41,22 @@ export class DocumentController {
   @Get('/:document')
   getFile(@Param('document') document: string, @Res() res) {
     return res.sendFile(join(__dirname, '../documents/' + document));
+  }
+
+  @Delete('/:document')
+  async deleteFile(@Param('document') document: string) {
+    try {
+      const path = join(__dirname + './../documents/' + document);
+      await unlinkSync(path);
+      return {
+        message: 'file deleted sucessfully',
+        statusCode: 200,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'error occured while deleting file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
