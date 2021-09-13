@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -15,9 +16,14 @@ import { diskStorage } from 'multer';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { unlinkSync } from 'fs';
+import { ConvertDTO } from './dto/convert.dto';
+import { DocumentService } from './document.service';
 
 @Controller('document')
 export class DocumentController {
+
+  constructor(private documentService:DocumentService){}
+
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
@@ -58,5 +64,10 @@ export class DocumentController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post('/convet')
+  convert(@Body() convertDTO:ConvertDTO){
+    return this.documentService.convert(convertDTO)
   }
 }
