@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { unlinkSync } from 'fs';
 import { ConvertDTO } from './dto/convert.dto';
 import { DocumentService } from './document.service';
+import { MergeDTO } from './dto/merge.dto';
 
 @Controller('document')
 export class DocumentController {
@@ -66,8 +67,13 @@ export class DocumentController {
     }
   }
 
-  @Post('/convet')
+  @Post('/convert')
   convert(@Body() convertDTO:ConvertDTO){
     return this.documentService.convert(convertDTO)
+  }
+
+  @Post('merge')
+  merge(@Body() mergeDTO:MergeDTO){
+    return this.documentService.merge(mergeDTO)
   }
 }
