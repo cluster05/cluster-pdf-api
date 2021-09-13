@@ -25,6 +25,16 @@ export class DocumentController {
 
   constructor(private documentService:DocumentService){}
 
+  @Post('/convert')
+  convert(@Body() convertDTO:ConvertDTO){
+    return this.documentService.convert(convertDTO)
+  }
+
+  @Post('merge')
+  merge(@Body() mergeDTO:MergeDTO){
+    return this.documentService.merge(mergeDTO)
+  }
+
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
@@ -67,13 +77,5 @@ export class DocumentController {
     }
   }
 
-  @Post('/convert')
-  convert(@Body() convertDTO:ConvertDTO){
-    return this.documentService.convert(convertDTO)
-  }
 
-  @Post('merge')
-  merge(@Body() mergeDTO:MergeDTO){
-    return this.documentService.merge(mergeDTO)
-  }
 }

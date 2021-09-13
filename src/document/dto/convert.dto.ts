@@ -1,5 +1,5 @@
 export interface ConvertDTO{
     from : string;
     to : string;
-    url : FunctionStringCallback
+    url : string
 }
