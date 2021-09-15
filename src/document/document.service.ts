@@ -1,16 +1,48 @@
-import { HttpException, HttpStatus, Injectable, Res } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
 import * as libre from 'libreoffice-convert';
-import { readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { promisify } from 'bluebird';
+import { PDFDocument } from 'pdf-lib';
+import { v4 as uuidv4 } from 'uuid';
+import fetch from 'node-fetch';
+
+if (!globalThis.fetch) {
+  globalThis.fetch = fetch;
+}
 
 @Injectable()
 export class DocumentService {
-  merge(mergeDTO: MergeDTO) {
-    //code for merge pdf files
+  async merge(mergeDTO: MergeDTO) {
+    const pdfLoader: PDFDocument[] = [];
+
+    await Promise.all(
+      mergeDTO.urls.map(async (url) => {
+        const buffer = await fetch(url).then((res) => res.arrayBuffer());
+        const laoder = await PDFDocument.load(buffer);
+        pdfLoader.push(laoder);
+      }),
+    );
+    const mergedPdf = await PDFDocument.create();
+
+    await Promise.all(
+      pdfLoader.map(async (pdf) => {
+        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        pages.forEach((page) => mergedPdf.addPage(page));
+      }),
+    );
+    const pdfBytes = await mergedPdf.save();
+
+    const filename = 'merge_' + uuidv4() + '.pdf';
+    const outputPath = join(__dirname, './../documents/', filename);
+
+    appendFileSync(outputPath, pdfBytes);
+    return {
+      url: 'http://localhost:3000/document/' + filename,
+    };
   }
 
   async convert(convertDTO: ConvertDTO) {

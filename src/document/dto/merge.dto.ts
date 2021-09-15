@@ -1,3 +1,3 @@
-export interface MergeDTO{
-    urls :string[]
+export interface MergeDTO {
+  urls: string[];
 }
