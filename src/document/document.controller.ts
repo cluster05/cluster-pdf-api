@@ -49,9 +49,7 @@ export class DocumentController {
     }),
   )
   createFile(@UploadedFile() file: Express.Multer.File) {
-    const documentId = file.filename.split('.')[0];
     return {
-      documentId,
       url: 'http://localhost:3000/document/' + file.filename,
     };
   }
