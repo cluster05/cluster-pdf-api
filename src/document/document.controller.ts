@@ -22,17 +22,16 @@ import { MergeDTO } from './dto/merge.dto';
 
 @Controller('document')
 export class DocumentController {
-
-  constructor(private documentService:DocumentService){}
+  constructor(private documentService: DocumentService) {}
 
   @Post('/convert')
-  convert(@Body() convertDTO:ConvertDTO){
-    return this.documentService.convert(convertDTO)
+  convert(@Body() convertDTO: ConvertDTO) {
+    return this.documentService.convert(convertDTO);
   }
 
-  @Post('merge')
-  merge(@Body() mergeDTO:MergeDTO){
-    return this.documentService.merge(mergeDTO)
+  @Post('/merge')
+  merge(@Body() mergeDTO: MergeDTO) {
+    return this.documentService.merge(mergeDTO);
   }
 
   @Post()
@@ -50,7 +49,9 @@ export class DocumentController {
     }),
   )
   createFile(@UploadedFile() file: Express.Multer.File) {
+    const documentId = file.filename.split('.')[0];
     return {
+      documentId,
       url: 'http://localhost:3000/document/' + file.filename,
     };
   }
@@ -76,6 +77,4 @@ export class DocumentController {
       );
     }
   }
-
-
 }
