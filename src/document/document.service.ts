@@ -33,7 +33,7 @@ export class DocumentService {
       );
       const pdfBytes = await mergedPdf.save();
 
-      const filename = 'merge_' + uuidv4() + '.pdf';
+      const filename = uuidv4() + '.pdf';
       const outputPath = join(__dirname, './../documents/', filename);
 
       appendFileSync(outputPath, pdfBytes);
@@ -51,28 +51,61 @@ export class DocumentService {
 
   async convert(convertDTO: ConvertDTO) {
     try {
-      const libreConvert = promisify(libre.convert);
-
-      const buffer = await fetch(convertDTO.url).then((res: any) =>
-        res.buffer(),
-      );
-
-      const filename = uuidv4() + '.' + convertDTO.to;
-
-      const outputPath = join(__dirname, './../documents/', filename);
-
-      const done = await libreConvert(buffer, convertDTO.to, undefined);
-
-      writeFileSync(outputPath, done);
-
-      return {
-        url: 'http://localhost:3000/document/' + filename,
-      };
+      switch (convertDTO.from) {
+        case 'office':
+          return await this.convertOfficeToPdf(convertDTO);
+        case 'image':
+          return await this.convertImageTopdf(convertDTO);
+        default:
+          throw new HttpException(
+            'wrong [from] defined. please contact developer :)',
+            HttpStatus.BAD_REQUEST,
+          );
+      }
+      //
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async convertOfficeToPdf(convertDTO: ConvertDTO) {
+    const libreConvert = promisify(libre.convert);
+
+    const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+
+    const filename = uuidv4() + '.' + convertDTO.to;
+
+    const outputPath = join(__dirname, './../documents/', filename);
+
+    const done = await libreConvert(buffer, convertDTO.to, undefined);
+
+    writeFileSync(outputPath, done);
+
+    return {
+      url: 'http://localhost:3000/document/' + filename,
+    };
+  }
+
+  async convertImageTopdf(convertDTO: ConvertDTO) {
+    const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+
+    const pdfDoc = await PDFDocument.create();
+    const image = await pdfDoc.embedJpg(buffer);
+
+    const page = pdfDoc.addPage();
+    page.drawImage(image, {});
+    const pdfBytes = await pdfDoc.save();
+
+    const filename = uuidv4() + '.pdf';
+    const outputPath = join(__dirname, './../documents/', filename);
+
+    appendFileSync(outputPath, pdfBytes);
+
+    return {
+      url: 'http://localhost:3000/document/' + filename,
+    };
   }
 }
