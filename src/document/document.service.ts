@@ -8,6 +8,7 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
+import * as pdf2Image from 'pdf2img';
 
 @Injectable()
 export class DocumentService {
@@ -51,11 +52,16 @@ export class DocumentService {
 
   async convert(convertDTO: ConvertDTO) {
     try {
-      switch (convertDTO.from) {
-        case 'office':
+      switch (convertDTO.from + '_' + convertDTO.to) {
+        case 'office_pdf':
           return await this.convertOfficeToPdf(convertDTO);
-        case 'image':
+        case 'pdf_office':
+          return await this.convertPdfToOffice(convertDTO);
+        case 'image_pdf':
           return await this.convertImageTopdf(convertDTO);
+        case 'pdf_image':
+          return await this.convertPdfToImage(convertDTO);
+
         default:
           throw new HttpException(
             'wrong [from] defined. please contact developer :)',
@@ -69,6 +75,13 @@ export class DocumentService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+  convertPdfToOffice(convertDTO: ConvertDTO) {
+    throw new Error('Method not implemented.');
+  }
+
+  async convertPdfToImage(convertDTO: ConvertDTO) {
+    throw new Error('Method not implemented.');
   }
 
   async convertOfficeToPdf(convertDTO: ConvertDTO) {
