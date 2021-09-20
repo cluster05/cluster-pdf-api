@@ -8,7 +8,7 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-import * as pdf2Image from 'pdf2img';
+
 
 @Injectable()
 export class DocumentService {
@@ -40,7 +40,7 @@ export class DocumentService {
       appendFileSync(outputPath, pdfBytes);
 
       return {
-        url: 'http://localhost:3000/document/' + filename,
+        url: 'http://localhost:8080/document/' + filename,
       };
     } catch (err) {
       throw new HttpException(
@@ -98,7 +98,7 @@ export class DocumentService {
     writeFileSync(outputPath, done);
 
     return {
-      url: 'http://localhost:3000/document/' + filename,
+      url: 'http://localhost:8080/document/' + filename,
     };
   }
 
@@ -118,7 +118,7 @@ export class DocumentService {
     appendFileSync(outputPath, pdfBytes);
 
     return {
-      url: 'http://localhost:3000/document/' + filename,
+      url: 'http://localhost:8080/document/' + filename,
     };
   }
 }
