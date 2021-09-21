@@ -8,14 +8,48 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-
+import {S3 } from 'aws-sdk';
 @Injectable()
 export class DocumentService {
   
-  upload(file: Express.Multer.File) {
-    
+  async upload(file: Express.Multer.File) {
+
+    if(!file.buffer){
+      throw new HttpException('Cannot read empty file',HttpStatus.BAD_REQUEST);
+    }
+    const { originalname } = file;
+    const fileSplit = originalname.split('.');
+    const extension =  fileSplit[fileSplit.length -1];
+    const filename = uuidv4() +'.'+extension;
+    return await this.uploadS3(file.buffer,filename); 
   }
   
+  async uploadS3(file,filename:string){
+    
+      const bucket = '';
+      const s3 = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      });
+      const params = {
+        Bucket:bucket,
+        Key : filename,
+        Body:file,
+      }
+
+      return new Promise((resolve,reject)=>{
+        s3.upload(params,(err,data)=>{
+          if(err){
+            reject(JSON.stringify(err));
+          }
+          resolve({
+            url : data,
+          });
+        })
+      })
+
+  }
+
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
