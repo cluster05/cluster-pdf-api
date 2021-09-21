@@ -3,15 +3,65 @@ import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
 import * as libre from 'libreoffice-convert';
-import { appendFileSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-
+import { S3 } from 'aws-sdk';
 
 @Injectable()
 export class DocumentService {
+
+  async uplaod(file: Express.Multer.File) {
+    
+    const { originalname } = file;
+
+    const fileSplit = originalname.split('.');
+    const extension =  fileSplit[fileSplit.length -1];
+    const filename = uuidv4() +'.'+extension;
+
+    const bucketS3 = 'AWS_BUCKET_NAME';
+    return await this.uplaodS3(file.buffer,bucketS3,filename);
+
+  }
+
+  async uplaodS3(file,bucket,filename:string){
+
+     console.log('[document service] upalod s3  started');
+     
+
+      const s3 = this.getS3();
+      const params = {
+        Bucket:bucket,
+        Key : filename,
+        Body:file,
+      }
+
+      return new Promise((resolve,reject)=>{
+        s3.upload(params,(err,data)=>{
+          if(err){
+            console.log('[document service] error',JSON.stringify(err));
+            
+            reject(err.message);
+          }
+          resolve({
+            url : data,
+          });
+        })
+        
+      })
+
+  }
+
+  getS3() {
+    return new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+  }
+
+  
   async merge(mergeDTO: MergeDTO) {
     try {
       const pdfLoader: PDFDocument[] = [];

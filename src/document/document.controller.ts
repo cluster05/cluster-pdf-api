@@ -24,6 +24,15 @@ import { MergeDTO } from './dto/merge.dto';
 export class DocumentController {
   constructor(private documentService: DocumentService) { }
 
+  @Post('/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uplaod(@UploadedFile() file: Express.Multer.File) {
+    const response =  await this.documentService.uplaod(file)
+    console.log(response);
+    
+    return response;
+  }
+  
   @Post('/convert')
   convert(@Body() convertDTO: ConvertDTO) {
     return this.documentService.convert(convertDTO);
@@ -34,25 +43,7 @@ export class DocumentController {
     return this.documentService.merge(mergeDTO);
   }
 
-  @Post()
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(__dirname, '../documents/'),
-        filename: (req, file, cb) => {
-          const fileSplit = file.originalname.split('.');
-          const fileExt = fileSplit[fileSplit.length - 1];
-          const filename = uuidv4() + '.' + fileExt;
-          cb(null, filename);
-        },
-      }),
-    }),
-  )
-  createFile(@UploadedFile() file: Express.Multer.File) {
-    return {
-      url: 'http://localhost:8080/document/' + file.filename,
-    };
-  }
+
 
   @Get('/:document')
   getFile(@Param('document') document: string, @Res() res) {
