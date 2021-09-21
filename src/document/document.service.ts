@@ -14,7 +14,7 @@ export class DocumentService {
   
   async upload(file: Express.Multer.File) {
 
-    if(!file.buffer){
+    if(!file && !file.originalname && !file.buffer){
       throw new HttpException('Cannot read empty file',HttpStatus.BAD_REQUEST);
     }
     const { originalname } = file;
@@ -25,8 +25,8 @@ export class DocumentService {
   }
   
   async uploadS3(file,filename:string){
-    
-      const bucket = '';
+
+      const bucket = process.env.AWS_BUCKET_NAME;
       const s3 = new S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
