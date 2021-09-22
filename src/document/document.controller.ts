@@ -18,7 +18,6 @@ import { MergeDTO } from './dto/merge.dto';
 export class DocumentController {
   constructor(private documentService: DocumentService) { }
 
-
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uplaod(@UploadedFile() file: Express.Multer.File) {

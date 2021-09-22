@@ -8,12 +8,20 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-
+import {S3 } from 'aws-sdk';
 @Injectable()
 export class DocumentService {
   
-  upload(file: Express.Multer.File) {
-    
+  async upload(file: Express.Multer.File) {
+
+    if(!file && !file.originalname && !file.buffer){
+      throw new HttpException('Cannot read empty file',HttpStatus.BAD_REQUEST);
+    }
+    const { originalname } = file;
+    const fileSplit = originalname.split('.');
+    const extension =  fileSplit[fileSplit.length -1];
+    const filename = uuidv4() +'.'+extension;
+    return await this.uploadS3(file.buffer,filename); 
   }
   
   async uploadS3(file,filename:string){
