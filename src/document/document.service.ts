@@ -9,9 +9,9 @@ import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
 
-
 @Injectable()
 export class DocumentService {
+  /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
       const pdfLoader: PDFDocument[] = [];
@@ -48,8 +48,21 @@ export class DocumentService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  
   }
 
+  async split(){
+    //yet to implement  1 offer
+  }
+  
+  async compress(){
+    //yet to implement  1 offer
+  }
+
+  /* 
+    implemented 4 offer
+    yet to implement 4 offer
+  */
   async convert(convertDTO: ConvertDTO) {
     try {
       switch (convertDTO.from + '_' + convertDTO.to) {
@@ -68,7 +81,6 @@ export class DocumentService {
             HttpStatus.BAD_REQUEST,
           );
       }
-      //
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
@@ -76,14 +88,16 @@ export class DocumentService {
       );
     }
   }
-  convertPdfToOffice(convertDTO: ConvertDTO) {
-    throw new Error('Method not implemented.');
+
+  async convertPdfToOffice(convertDTO: ConvertDTO) {
+    //yet to implement  3 offer
   }
 
   async convertPdfToImage(convertDTO: ConvertDTO) {
-    throw new Error('Method not implemented.');
+    //yet to implement 1 offer
   }
 
+  /* implemented 3 offer */
   async convertOfficeToPdf(convertDTO: ConvertDTO) {
     const libreConvert = promisify(libre.convert);
 
@@ -102,6 +116,7 @@ export class DocumentService {
     };
   }
 
+  /* implemented 1 offer */
   async convertImageTopdf(convertDTO: ConvertDTO) {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 

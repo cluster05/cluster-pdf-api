@@ -1,10 +1,7 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Post,
   Res,
@@ -15,7 +12,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { unlinkSync } from 'fs';
 import { ConvertDTO } from './dto/convert.dto';
 import { DocumentService } from './document.service';
 import { MergeDTO } from './dto/merge.dto';
@@ -34,6 +30,11 @@ export class DocumentController {
     return this.documentService.merge(mergeDTO);
   }
 
+  @Post('/compess')
+  compress(){
+    return this.documentService.compress();
+  }
+
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
@@ -50,6 +51,7 @@ export class DocumentController {
   )
   createFile(@UploadedFile() file: Express.Multer.File) {
     return {
+      documentId : file.filename,
       url: 'http://localhost:8080/document/' + file.filename,
     };
   }
@@ -59,20 +61,4 @@ export class DocumentController {
     return res.sendFile(join(__dirname, '../documents/' + document));
   }
 
-  @Delete('/:document')
-  async deleteFile(@Param('document') document: string) {
-    try {
-      const path = join(__dirname + './../documents/' + document);
-      await unlinkSync(path);
-      return {
-        message: 'file deleted sucessfully',
-        statusCode: 200,
-      };
-    } catch (error) {
-      throw new HttpException(
-        'error occured while deleting file',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
 }
