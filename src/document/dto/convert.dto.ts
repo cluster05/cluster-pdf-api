@@ -4,4 +4,5 @@ export interface ConvertDTO {
   url: string;
   fromType : string;
   toType :string;
+  pages : number | number[]
 }
