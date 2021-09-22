@@ -94,12 +94,12 @@ export class DocumentService {
     }
   }
 
+  //yet to implement  3 offer
   private async convertPdfToOffice(convertDTO: ConvertDTO) {
-    //yet to implement  3 offer
   }
 
+  //yet to implement 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
-    //yet to implement 1 offer
   }
 
   /* implemented 3 offer */
