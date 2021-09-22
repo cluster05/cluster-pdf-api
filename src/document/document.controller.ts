@@ -46,9 +46,4 @@ export class DocumentController {
     return this.documentService.upload(file);
   }
 
-  @Get('/:document')
-  getFile(@Param('document') document: string, @Res() res) {
-    return res.sendFile(join(__dirname, '../documents/' + document));
-  }
-
 }

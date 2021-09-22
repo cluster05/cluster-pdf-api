@@ -16,6 +16,32 @@ export class DocumentService {
     
   }
   
+  async uploadS3(file,filename:string){
+
+      const bucket = process.env.AWS_BUCKET_NAME;
+      const s3 = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      });
+      const params = {
+        Bucket:bucket,
+        Key : filename,
+        Body:file,
+      }
+
+      return new Promise((resolve,reject)=>{
+        s3.upload(params,(err,data)=>{
+          if(err){
+            reject(err.message);
+          }
+          resolve({
+            url : data,
+          });
+        })
+      })
+
+  }
+
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
@@ -82,7 +108,7 @@ export class DocumentService {
 
         default:
           throw new HttpException(
-            'wrong [from] defined. please contact developer :)',
+            'wrong [to][from] defined.',
             HttpStatus.BAD_REQUEST,
           );
       }
