@@ -138,11 +138,13 @@ export class DocumentService {
 
     return {
       url: 'http://localhost:8080/document/' + filename,
+      key : filename
     };
   }
 
   /* implemented 1 offer */
   private async convertImageTopdf(convertDTO: ConvertDTO) {
+    
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
@@ -159,6 +161,7 @@ export class DocumentService {
 
     return {
       url: 'http://localhost:8080/document/' + filename,
+      key:filename,
     };
   }
 }
