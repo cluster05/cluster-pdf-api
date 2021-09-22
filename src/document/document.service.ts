@@ -78,7 +78,7 @@ export class DocumentService {
   
   }
 
-  //yet to implement  1 offer
+  /* implemented 1 offer */
   async split(splitDTO :SplitDTO){
 
     const pagesToAdd = splitDTO.pages.map(p=>p - 1);
@@ -115,6 +115,7 @@ export class DocumentService {
   
   //yet to implement  1 offer
   async compress(){
+    
   }
 
   /* 
