@@ -8,60 +8,15 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-import { S3 } from 'aws-sdk';
 
 @Injectable()
 export class DocumentService {
-
-  async uplaod(file: Express.Multer.File) {
-    
-    const { originalname } = file;
-
-    const fileSplit = originalname.split('.');
-    const extension =  fileSplit[fileSplit.length -1];
-    const filename = uuidv4() +'.'+extension;
-
-    const bucketS3 = 'AWS_BUCKET_NAME';
-    return await this.uplaodS3(file.buffer,bucketS3,filename);
-
-  }
-
-  async uplaodS3(file,bucket,filename:string){
-
-     console.log('[document service] upalod s3  started');
-     
-
-      const s3 = this.getS3();
-      const params = {
-        Bucket:bucket,
-        Key : filename,
-        Body:file,
-      }
-
-      return new Promise((resolve,reject)=>{
-        s3.upload(params,(err,data)=>{
-          if(err){
-            console.log('[document service] error',JSON.stringify(err));
-            
-            reject(err.message);
-          }
-          resolve({
-            url : data,
-          });
-        })
-        
-      })
-
-  }
-
-  getS3() {
-    return new S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    });
-  }
-
   
+  upload(file: Express.Multer.File) {
+    
+  }
+  
+  /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
       const pdfLoader: PDFDocument[] = [];
@@ -98,8 +53,21 @@ export class DocumentService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  
   }
 
+  //yet to implement  1 offer
+  async split(){
+  }
+  
+  //yet to implement  1 offer
+  async compress(){
+  }
+
+  /* 
+    implemented 4 offer
+    yet to implement 4 offer
+  */
   async convert(convertDTO: ConvertDTO) {
     try {
       switch (convertDTO.from + '_' + convertDTO.to) {
@@ -118,7 +86,6 @@ export class DocumentService {
             HttpStatus.BAD_REQUEST,
           );
       }
-      //
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
@@ -126,15 +93,17 @@ export class DocumentService {
       );
     }
   }
-  convertPdfToOffice(convertDTO: ConvertDTO) {
-    throw new Error('Method not implemented.');
+
+  private async convertPdfToOffice(convertDTO: ConvertDTO) {
+    //yet to implement  3 offer
   }
 
-  async convertPdfToImage(convertDTO: ConvertDTO) {
-    throw new Error('Method not implemented.');
+  private async convertPdfToImage(convertDTO: ConvertDTO) {
+    //yet to implement 1 offer
   }
 
-  async convertOfficeToPdf(convertDTO: ConvertDTO) {
+  /* implemented 3 offer */
+  private async convertOfficeToPdf(convertDTO: ConvertDTO) {
     const libreConvert = promisify(libre.convert);
 
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
@@ -152,7 +121,8 @@ export class DocumentService {
     };
   }
 
-  async convertImageTopdf(convertDTO: ConvertDTO) {
+  /* implemented 1 offer */
+  private async convertImageTopdf(convertDTO: ConvertDTO) {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
