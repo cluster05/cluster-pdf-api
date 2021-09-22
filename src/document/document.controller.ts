@@ -13,6 +13,7 @@ import { join } from 'path';
 import { ConvertDTO } from './dto/convert.dto';
 import { DocumentService } from './document.service';
 import { MergeDTO } from './dto/merge.dto';
+import { SplitDTO } from './dto/split.dto';
 @Controller('document')
 export class DocumentController {
   constructor(private documentService: DocumentService) { }
@@ -29,18 +30,23 @@ export class DocumentController {
   }  
   
   @Post('/convert')
-  convert(@Body() convertDTO: ConvertDTO) {
-    return this.documentService.convert(convertDTO);
+  async convert(@Body() convertDTO: ConvertDTO) {
+    return await this.documentService.convert(convertDTO);
   }
 
   @Post('/merge')
-  merge(@Body() mergeDTO: MergeDTO) {
-    return this.documentService.merge(mergeDTO);
+  async merge(@Body() mergeDTO: MergeDTO) {
+    return await this.documentService.merge(mergeDTO);
   }
 
   @Post('/compess')
-  compress(){
-    return this.documentService.compress();
+  async compress(){
+    return await this.documentService.compress();
+  }
+
+  @Post('/split')
+  async split(@Body() splitDTO:SplitDTO){
+    return await this.documentService.split(splitDTO);
   }
 
 }
