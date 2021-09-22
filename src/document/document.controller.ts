@@ -36,24 +36,9 @@ export class DocumentController {
   }
 
   @Post()
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: join(__dirname, '../documents/'),
-        filename: (req, file, cb) => {
-          const fileSplit = file.originalname.split('.');
-          const fileExt = fileSplit[fileSplit.length - 1];
-          const filename = uuidv4() + '.' + fileExt;
-          cb(null, filename);
-        },
-      }),
-    }),
-  )
-  createFile(@UploadedFile() file: Express.Multer.File) {
-    return {
-      documentId : file.filename,
-      url: 'http://localhost:8080/document/' + file.filename,
-    };
+  @UseInterceptors(FileInterceptor('file'))
+  async upload(@UploadedFile() file: Express.Multer.File) {
+    return this.documentService.upload(file);
   }
 
   @Get('/:document')

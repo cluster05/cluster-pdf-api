@@ -11,6 +11,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class DocumentService {
+  
+  upload(file: Express.Multer.File) {
+    throw new Error('Method not implemented.');
+  }
+  
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
@@ -89,16 +94,16 @@ export class DocumentService {
     }
   }
 
-  async convertPdfToOffice(convertDTO: ConvertDTO) {
+  private async convertPdfToOffice(convertDTO: ConvertDTO) {
     //yet to implement  3 offer
   }
 
-  async convertPdfToImage(convertDTO: ConvertDTO) {
+  private async convertPdfToImage(convertDTO: ConvertDTO) {
     //yet to implement 1 offer
   }
 
   /* implemented 3 offer */
-  async convertOfficeToPdf(convertDTO: ConvertDTO) {
+  private async convertOfficeToPdf(convertDTO: ConvertDTO) {
     const libreConvert = promisify(libre.convert);
 
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
@@ -117,7 +122,7 @@ export class DocumentService {
   }
 
   /* implemented 1 offer */
-  async convertImageTopdf(convertDTO: ConvertDTO) {
+  private async convertImageTopdf(convertDTO: ConvertDTO) {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
