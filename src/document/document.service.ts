@@ -9,6 +9,7 @@ import { promisify } from 'bluebird';
 import { PDFDocument } from 'pdf-lib';
 import { fromBuffer } from 'pdf2pic';
 import { v4 as uuidv4 } from 'uuid';
+import { SplitDTO } from './dto/split.dto';
 
 @Injectable()
 export class DocumentService {
@@ -78,7 +79,38 @@ export class DocumentService {
   }
 
   //yet to implement  1 offer
-  async split(){
+  async split(splitDTO :SplitDTO){
+
+    const pagesToAdd = splitDTO.pages.map(p=>p - 1);
+
+    try {
+
+      const pdf = await fetch(splitDTO.url).then((res) => res.arrayBuffer());
+      const getPdf = await PDFDocument.load(pdf);
+
+      const newPDF = await PDFDocument.create();
+
+      const pages = await newPDF.copyPages(getPdf, pagesToAdd );
+      pages.forEach((page) => newPDF.addPage(page));
+
+      const pdfBytes = await newPDF.save();
+
+      const filename = uuidv4() + '.pdf';
+      const outputPath = join(__dirname, './../documents/', filename);
+
+      appendFileSync(outputPath, pdfBytes);
+
+      return {
+        url: 'http://localhost:8080/document/' + filename,
+        key: filename
+      };
+    } catch (err) {
+      throw new HttpException(
+        'error in converting the file.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
   }
   
   //yet to implement  1 offer
