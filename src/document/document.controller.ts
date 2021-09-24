@@ -14,6 +14,7 @@ import { ConvertDTO } from './dto/convert.dto';
 import { DocumentService } from './document.service';
 import { MergeDTO } from './dto/merge.dto';
 import { SplitDTO } from './dto/split.dto';
+import { CompressDTO } from './dto/compress.dto';
 @Controller('document')
 export class DocumentController {
   constructor(private documentService: DocumentService) { }
@@ -39,9 +40,9 @@ export class DocumentController {
     return await this.documentService.merge(mergeDTO);
   }
 
-  @Post('/compess')
-  async compress(){
-    return await this.documentService.compress();
+  @Post('/compress')
+  async compress(@Body() compressDTO:CompressDTO){
+    return await this.documentService.compress(compressDTO);
   }
 
   @Post('/split')
