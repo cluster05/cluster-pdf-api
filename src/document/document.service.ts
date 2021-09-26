@@ -8,14 +8,16 @@ import { join } from 'path';
 import { promisify } from 'bluebird';
 import { v4 as uuidv4 } from 'uuid';
 
-import libre from 'libreoffice-convert';
+import {convert} from 'libreoffice-convert';
 import { PDFDocument } from 'pdf-lib';
 import { fromBuffer } from 'pdf2pic';
 
 import { SplitDTO } from './dto/split.dto';
 import { CompressDTO } from './dto/compress.dto';
 
-import { compress as compressPdfTool } from 'cluster-pdf-tools';
+import cpt from 'cluster-pdf-tools';
+
+const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
   
@@ -124,7 +126,7 @@ export class DocumentService {
     try{
 
       const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-      const compressBuffer = await compressPdfTool(buffer);
+      const compressBuffer = await cpt.compress(buffer);
       
       const filename = uuidv4() + '.pdf';
       const outputPath = join(__dirname, './../documents/', filename);
@@ -169,6 +171,8 @@ export class DocumentService {
           );
       }
     } catch (err) {
+      console.log(err);
+      
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -235,7 +239,6 @@ export class DocumentService {
 
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
-    const libreConvert = promisify(libre.convert);
 
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
