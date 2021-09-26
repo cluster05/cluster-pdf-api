@@ -2,15 +2,22 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
-import * as libre from 'libreoffice-convert';
 import { appendFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+
 import { promisify } from 'bluebird';
+import { v4 as uuidv4 } from 'uuid';
+
+import {convert} from 'libreoffice-convert';
 import { PDFDocument } from 'pdf-lib';
 import { fromBuffer } from 'pdf2pic';
-import { v4 as uuidv4 } from 'uuid';
-import { SplitDTO } from './dto/split.dto';
 
+import { SplitDTO } from './dto/split.dto';
+import { CompressDTO } from './dto/compress.dto';
+
+import cpt from 'cluster-pdf-tools';
+
+const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
   
@@ -114,8 +121,31 @@ export class DocumentService {
   }
   
   //yet to implement  1 offer
-  async compress(){
-    
+  async compress(compressDTO:CompressDTO){
+
+    try{
+
+      const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
+      const compressBuffer = await cpt.compress(buffer);
+      
+      const filename = uuidv4() + '.pdf';
+      const outputPath = join(__dirname, './../documents/', filename);
+
+      appendFileSync(outputPath, compressBuffer);
+
+      return {
+        url: 'http://localhost:8080/document/' + filename,
+        key: filename
+      };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'error in compressing the file.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+  
   }
 
   /* 
@@ -141,6 +171,8 @@ export class DocumentService {
           );
       }
     } catch (err) {
+      console.log(err);
+      
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -207,7 +239,6 @@ export class DocumentService {
 
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
-    const libreConvert = promisify(libre.convert);
 
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
