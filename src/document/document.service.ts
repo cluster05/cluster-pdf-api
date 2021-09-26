@@ -75,6 +75,7 @@ export class DocumentService {
 
       return {
         url: 'http://localhost:8080/document/' + filename,
+        key : filename
       };
     } catch (err) {
       throw new HttpException(
@@ -125,8 +126,8 @@ export class DocumentService {
 
     try{
 
-      const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-      const compressBuffer = await cpt.compress(buffer);
+       const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
+        const compressBuffer = await cpt.compress(buffer);
       
       const filename = uuidv4() + '.pdf';
       const outputPath = join(__dirname, './../documents/', filename);
@@ -210,7 +211,7 @@ export class DocumentService {
       }
 
       if(typeof(pages)== 'undefined'){
-        pages = 1;
+        pages = -1;
       }
 
       const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,false);
@@ -224,9 +225,9 @@ export class DocumentService {
         })
       })
 
-      return {
+      return [
         ...builder
-      }
+      ]
     
     }catch(error){
       console.log(error);
