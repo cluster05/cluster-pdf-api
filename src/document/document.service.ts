@@ -9,7 +9,7 @@ import { promisify } from 'bluebird';
 import { v4 as uuidv4 } from 'uuid';
 
 import {convert} from 'libreoffice-convert';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFImage } from 'pdf-lib';
 import { fromBuffer } from 'pdf2pic';
 
 import { SplitDTO } from './dto/split.dto';
@@ -262,7 +262,14 @@ export class DocumentService {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
-    const image = await pdfDoc.embedJpg(buffer);
+    let image : PDFImage;
+    if(convertDTO.fromType == 'jpg'){
+      image = await pdfDoc.embedJpg( buffer);
+    }else if(convertDTO.fromType=='png'){
+      image = await pdfDoc.embedPng(buffer);
+    }else{
+      throw new HttpException("invalid file format",HttpStatus.BAD_REQUEST) 
+    }
 
     const page = pdfDoc.addPage();
     page.drawImage(image, {});
