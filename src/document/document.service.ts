@@ -15,7 +15,7 @@ import { fromBuffer } from 'pdf2pic';
 import { SplitDTO } from './dto/split.dto';
 import { CompressDTO } from './dto/compress.dto';
 
-import cpt from 'cluster-pdf-tools';
+import { compress as cptCompress } from 'cluster-pdf-tools';
 
 const libreConvert = promisify(convert);
 @Injectable()
@@ -127,7 +127,7 @@ export class DocumentService {
     try{
 
        const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-        const compressBuffer = await cpt.compress(buffer);
+        const compressBuffer = await cptCompress(buffer);
       
       const filename = uuidv4() + '.pdf';
       const outputPath = join(__dirname, './../documents/', filename);
