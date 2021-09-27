@@ -98,7 +98,7 @@ export class DocumentService {
 
       const filename = uuidv4() + '.pdf';
       
-      return this.uploadS3(pdfBytes,filename);
+      return await this.uploadS3(pdfBytes,filename);
 
     } catch (err) {
       throw new HttpException(
@@ -128,7 +128,7 @@ export class DocumentService {
 
       const filename = uuidv4() + '.pdf';
       
-      await this.uploadS3(pdfBytes,filename);
+      return await this.uploadS3(pdfBytes,filename);
 
     } catch (err) {
       throw new HttpException(
@@ -145,17 +145,12 @@ export class DocumentService {
     try{
 
        const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-        const compressBuffer = await cptCompress(buffer);
+      const compressBuffer = await cptCompress(buffer);
       
       const filename = uuidv4() + '.pdf';
-      const outputPath = join(__dirname, './../documents/', filename);
+      
+      return await this.uploadS3(compressBuffer,filename);
 
-      appendFileSync(outputPath, compressBuffer);
-
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key: filename
-      };
     } catch (err) {
       console.log(err);
       throw new HttpException(
