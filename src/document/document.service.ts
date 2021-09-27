@@ -198,7 +198,7 @@ export class DocumentService {
   private async convertPdfToOffice(convertDTO: ConvertDTO) {
   }
 
-  //yet to implement 1 offer
+  // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
     
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
@@ -258,16 +258,10 @@ export class DocumentService {
 
     const filename = uuidv4() + '.' + convertDTO.to;
 
-    const outputPath = join(__dirname, './../documents/', filename);
-
     const done = await libreConvert(buffer, convertDTO.to, undefined);
 
-    writeFileSync(outputPath, done);
-
-    return {
-      url: 'http://localhost:8080/document/' + filename,
-      key : filename
-    };
+    return await this.uploadS3(done,filename);
+    
   }
 
   /* implemented 1 offer */
@@ -290,13 +284,6 @@ export class DocumentService {
     const pdfBytes = await pdfDoc.save();
 
     const filename = uuidv4() + '.pdf';
-    const outputPath = join(__dirname, './../documents/', filename);
-
-    appendFileSync(outputPath, pdfBytes);
-
-    return {
-      url: 'http://localhost:8080/document/' + filename,
-      key:filename,
-    };
+    return await this.uploadS3(pdfBytes,filename);
   }
 }
