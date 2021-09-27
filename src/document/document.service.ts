@@ -31,7 +31,7 @@ export class DocumentService {
     });
   }
 
-  private async uploadS3(file:Buffer,filename :string){
+  private async uploadS3(file:Buffer | Uint8Array,filename :string){
 
       const s3 = this.getS3();
       const params = {
@@ -97,14 +97,9 @@ export class DocumentService {
       const pdfBytes = await mergedPdf.save();
 
       const filename = uuidv4() + '.pdf';
-      const outputPath = join(__dirname, './../documents/', filename);
+      
+      return this.uploadS3(pdfBytes,filename);
 
-      appendFileSync(outputPath, pdfBytes);
-
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key : filename
-      };
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
