@@ -17,9 +17,41 @@ import { CompressDTO } from './dto/compress.dto';
 
 import { compress as cptCompress } from 'cluster-pdf-tools';
 
+import { S3 } from 'aws-sdk';
+
+
 const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
+
+  private getS3() {
+    return new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+  }
+
+  private async uploadS3(file:Buffer,filename :string){
+
+      const s3 = this.getS3();
+      const params = {
+        Bucket : process.env.AWS_BUCKET_NAME,
+        Key: filename,
+        Body:file
+      }
+      return new Promise((resolve,reject)=>{
+        s3.upload(params,(err,data)=>{
+          if(err){
+            reject(err.message);
+          }
+          resolve({
+            url: data.Location,
+            key: data.Key
+          });
+        })
+      })
+
+  }
   
   /* upload file without aws */
   async upload(file: Express.Multer.File) {
@@ -28,20 +60,16 @@ export class DocumentService {
       throw new HttpException("invalid file",HttpStatus.BAD_REQUEST);
     }
 
+  try{  
+   
     const fileSplit = file.originalname.split('.');
     const fileExt = fileSplit[fileSplit.length - 1];
     const filename = uuidv4() + '.' + fileExt;
-    const destination = join(__dirname , '../documents/',filename);
-    
-    try{  
-      writeFileSync(destination,file.buffer);
-      
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key: filename
-      };
+
+    return await this.uploadS3(file.buffer,filename) 
+       
     }catch(error){
-      throw new HttpException(JSON.stringify(error),HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   
