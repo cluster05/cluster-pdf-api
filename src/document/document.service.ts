@@ -2,9 +2,6 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
-import { appendFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-
 import { promisify } from 'bluebird';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -200,15 +197,10 @@ export class DocumentService {
 
   // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
-    
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
-    const filename = uuidv4();
-    const destination = join(__dirname , '../documents/')
     const options =  {
       density: 100,
-      saveFilename: filename,
-      savePath:destination,
       format: convertDTO.toType,
       width: 2480,
       height: 3508
@@ -226,18 +218,28 @@ export class DocumentService {
       if(typeof(pages)== 'undefined'){
         pages = -1;
       }
+      const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,true);
 
-      const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,false);
       const builder : { url : string ; key : string , page : number }[] = [];
 
-      convetPdfToImage.forEach(ele=>{
-        builder.push({
-          url: 'http://localhost:8080/document/' + ele.name,
-          key : ele.name,
-          page :ele.page
-        })
-      })
+      await Promise.all(
+      convetPdfToImage.map(async (ele) => {
+          let base64Data  = ele.base64.replace(/^data:image\/png;base64,/, "");
+          base64Data  +=  base64Data.replace('+', ' ');
+          const buffer  =   Buffer.from(base64Data, 'base64');
+          const filename = uuidv4()+'.png';
+          const response = await this.uploadS3(buffer,filename) as any;
+          
+          builder.push({
+            url: response.url,
+            key:filename,
+            page : ele.page
+          });
 
+        }),
+      );
+
+    
       return [
         ...builder
       ]
@@ -261,7 +263,7 @@ export class DocumentService {
     const done = await libreConvert(buffer, convertDTO.to, undefined);
 
     return await this.uploadS3(done,filename);
-    
+
   }
 
   /* implemented 1 offer */
