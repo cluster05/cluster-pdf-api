@@ -2,9 +2,6 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
-import { appendFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-
 import { promisify } from 'bluebird';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,9 +14,41 @@ import { CompressDTO } from './dto/compress.dto';
 
 import { compress as cptCompress } from 'cluster-pdf-tools';
 
+import { S3 } from 'aws-sdk';
+
+
 const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
+
+  private getS3() {
+    return new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+  }
+
+  private async uploadS3(file:Buffer | Uint8Array,filename :string){
+
+      const s3 = this.getS3();
+      const params = {
+        Bucket : process.env.AWS_BUCKET_NAME,
+        Key: filename,
+        Body:file
+      }
+      return new Promise((resolve,reject)=>{
+        s3.upload(params,(err,data)=>{
+          if(err){
+            reject(err.message);
+          }
+          resolve({
+            url: data.Location,
+            key: data.Key
+          });
+        })
+      })
+
+  }
   
   /* upload file without aws */
   async upload(file: Express.Multer.File) {
@@ -28,20 +57,16 @@ export class DocumentService {
       throw new HttpException("invalid file",HttpStatus.BAD_REQUEST);
     }
 
+  try{  
+   
     const fileSplit = file.originalname.split('.');
     const fileExt = fileSplit[fileSplit.length - 1];
     const filename = uuidv4() + '.' + fileExt;
-    const destination = join(__dirname , '../documents/',filename);
-    
-    try{  
-      writeFileSync(destination,file.buffer);
-      
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key: filename
-      };
+
+    return await this.uploadS3(file.buffer,filename) 
+       
     }catch(error){
-      throw new HttpException(JSON.stringify(error),HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   
@@ -69,14 +94,9 @@ export class DocumentService {
       const pdfBytes = await mergedPdf.save();
 
       const filename = uuidv4() + '.pdf';
-      const outputPath = join(__dirname, './../documents/', filename);
+      
+      return await this.uploadS3(pdfBytes,filename);
 
-      appendFileSync(outputPath, pdfBytes);
-
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key : filename
-      };
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
@@ -104,14 +124,9 @@ export class DocumentService {
       const pdfBytes = await newPDF.save();
 
       const filename = uuidv4() + '.pdf';
-      const outputPath = join(__dirname, './../documents/', filename);
+      
+      return await this.uploadS3(pdfBytes,filename);
 
-      appendFileSync(outputPath, pdfBytes);
-
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key: filename
-      };
     } catch (err) {
       throw new HttpException(
         'error in converting the file.',
@@ -127,17 +142,12 @@ export class DocumentService {
     try{
 
        const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-        const compressBuffer = await cptCompress(buffer);
+      const compressBuffer = await cptCompress(buffer);
       
       const filename = uuidv4() + '.pdf';
-      const outputPath = join(__dirname, './../documents/', filename);
+      
+      return await this.uploadS3(compressBuffer,filename);
 
-      appendFileSync(outputPath, compressBuffer);
-
-      return {
-        url: 'http://localhost:8080/document/' + filename,
-        key: filename
-      };
     } catch (err) {
       console.log(err);
       throw new HttpException(
@@ -185,17 +195,12 @@ export class DocumentService {
   private async convertPdfToOffice(convertDTO: ConvertDTO) {
   }
 
-  //yet to implement 1 offer
+  // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
-    
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
-    const filename = uuidv4();
-    const destination = join(__dirname , '../documents/')
     const options =  {
       density: 100,
-      saveFilename: filename,
-      savePath:destination,
       format: convertDTO.toType,
       width: 2480,
       height: 3508
@@ -213,18 +218,28 @@ export class DocumentService {
       if(typeof(pages)== 'undefined'){
         pages = -1;
       }
+      const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,true);
 
-      const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,false);
       const builder : { url : string ; key : string , page : number }[] = [];
 
-      convetPdfToImage.forEach(ele=>{
-        builder.push({
-          url: 'http://localhost:8080/document/' + ele.name,
-          key : ele.name,
-          page :ele.page
-        })
-      })
+      await Promise.all(
+      convetPdfToImage.map(async (ele) => {
+          let base64Data  = ele.base64.replace(/^data:image\/png;base64,/, "");
+          base64Data  +=  base64Data.replace('+', ' ');
+          const buffer  =   Buffer.from(base64Data, 'base64');
+          const filename = uuidv4()+'.png';
+          const response = await this.uploadS3(buffer,filename) as any;
+          
+          builder.push({
+            url: response.url,
+            key:filename,
+            page : ele.page
+          });
 
+        }),
+      );
+
+    
       return [
         ...builder
       ]
@@ -245,16 +260,10 @@ export class DocumentService {
 
     const filename = uuidv4() + '.' + convertDTO.to;
 
-    const outputPath = join(__dirname, './../documents/', filename);
-
     const done = await libreConvert(buffer, convertDTO.to, undefined);
 
-    writeFileSync(outputPath, done);
+    return await this.uploadS3(done,filename);
 
-    return {
-      url: 'http://localhost:8080/document/' + filename,
-      key : filename
-    };
   }
 
   /* implemented 1 offer */
@@ -277,13 +286,6 @@ export class DocumentService {
     const pdfBytes = await pdfDoc.save();
 
     const filename = uuidv4() + '.pdf';
-    const outputPath = join(__dirname, './../documents/', filename);
-
-    appendFileSync(outputPath, pdfBytes);
-
-    return {
-      url: 'http://localhost:8080/document/' + filename,
-      key:filename,
-    };
+    return await this.uploadS3(pdfBytes,filename);
   }
 }
