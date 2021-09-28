@@ -2,54 +2,49 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
-import * as libre from 'libreoffice-convert';
 import { appendFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+
 import { promisify } from 'bluebird';
-import { PDFDocument } from 'pdf-lib';
 import { v4 as uuidv4 } from 'uuid';
-import {S3 } from 'aws-sdk';
+
+import {convert} from 'libreoffice-convert';
+import { PDFDocument, PDFImage } from 'pdf-lib';
+import { fromBuffer } from 'pdf2pic';
+
+import { SplitDTO } from './dto/split.dto';
+import { CompressDTO } from './dto/compress.dto';
+
+import { compress as cptCompress } from 'cluster-pdf-tools';
+
+const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
   
+  /* upload file without aws */
   async upload(file: Express.Multer.File) {
 
-    if(!file && !file.originalname && !file.buffer){
-      throw new HttpException('Cannot read empty file',HttpStatus.BAD_REQUEST);
+    if(!file){
+      throw new HttpException("invalid file",HttpStatus.BAD_REQUEST);
     }
-    const { originalname } = file;
-    const fileSplit = originalname.split('.');
-    const extension =  fileSplit[fileSplit.length -1];
-    const filename = uuidv4() +'.'+extension;
-    return await this.uploadS3(file.buffer,filename); 
+
+    const fileSplit = file.originalname.split('.');
+    const fileExt = fileSplit[fileSplit.length - 1];
+    const filename = uuidv4() + '.' + fileExt;
+    const destination = join(__dirname , '../documents/',filename);
+    
+    try{  
+      writeFileSync(destination,file.buffer);
+      
+      return {
+        url: 'http://localhost:8080/document/' + filename,
+        key: filename
+      };
+    }catch(error){
+      throw new HttpException(JSON.stringify(error),HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
   
-  async uploadS3(file,filename:string){
-
-      const bucket = process.env.AWS_BUCKET_NAME;
-      const s3 = new S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      });
-      const params = {
-        Bucket:bucket,
-        Key : filename,
-        Body:file,
-      }
-
-      return new Promise((resolve,reject)=>{
-        s3.upload(params,(err,data)=>{
-          if(err){
-            reject(err.message);
-          }
-          resolve({
-            url : data,
-          });
-        })
-      })
-
-  }
-
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
@@ -80,6 +75,7 @@ export class DocumentService {
 
       return {
         url: 'http://localhost:8080/document/' + filename,
+        key : filename
       };
     } catch (err) {
       throw new HttpException(
@@ -90,12 +86,67 @@ export class DocumentService {
   
   }
 
-  //yet to implement  1 offer
-  async split(){
+  /* implemented 1 offer */
+  async split(splitDTO :SplitDTO){
+
+    const pagesToAdd = splitDTO.pages.map(p=>p - 1);
+
+    try {
+
+      const pdf = await fetch(splitDTO.url).then((res) => res.arrayBuffer());
+      const getPdf = await PDFDocument.load(pdf);
+
+      const newPDF = await PDFDocument.create();
+
+      const pages = await newPDF.copyPages(getPdf, pagesToAdd );
+      pages.forEach((page) => newPDF.addPage(page));
+
+      const pdfBytes = await newPDF.save();
+
+      const filename = uuidv4() + '.pdf';
+      const outputPath = join(__dirname, './../documents/', filename);
+
+      appendFileSync(outputPath, pdfBytes);
+
+      return {
+        url: 'http://localhost:8080/document/' + filename,
+        key: filename
+      };
+    } catch (err) {
+      throw new HttpException(
+        'error in converting the file.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
   }
   
   //yet to implement  1 offer
-  async compress(){
+  async compress(compressDTO:CompressDTO){
+
+    try{
+
+       const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
+        const compressBuffer = await cptCompress(buffer);
+      
+      const filename = uuidv4() + '.pdf';
+      const outputPath = join(__dirname, './../documents/', filename);
+
+      appendFileSync(outputPath, compressBuffer);
+
+      return {
+        url: 'http://localhost:8080/document/' + filename,
+        key: filename
+      };
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'error in compressing the file.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+  
   }
 
   /* 
@@ -121,6 +172,8 @@ export class DocumentService {
           );
       }
     } catch (err) {
+      console.log(err);
+      
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -134,11 +187,59 @@ export class DocumentService {
 
   //yet to implement 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
+    
+    const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+
+    const filename = uuidv4();
+    const destination = join(__dirname , '../documents/')
+    const options =  {
+      density: 100,
+      saveFilename: filename,
+      savePath:destination,
+      format: convertDTO.toType,
+      width: 2480,
+      height: 3508
+    };
+    
+    try{
+      let pages =convertDTO.pages;
+
+      if(Array.isArray(pages)){
+        if(pages.length == 0){
+          throw new HttpException("invalid array",HttpStatus.BAD_REQUEST);
+        }
+      }
+
+      if(typeof(pages)== 'undefined'){
+        pages = -1;
+      }
+
+      const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,false);
+      const builder : { url : string ; key : string , page : number }[] = [];
+
+      convetPdfToImage.forEach(ele=>{
+        builder.push({
+          url: 'http://localhost:8080/document/' + ele.name,
+          key : ele.name,
+          page :ele.page
+        })
+      })
+
+      return [
+        ...builder
+      ]
+    
+    }catch(error){
+      console.log(error);
+      
+      throw new HttpException("error in converting file",HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+     
+
   }
 
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
-    const libreConvert = promisify(libre.convert);
 
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
@@ -152,15 +253,24 @@ export class DocumentService {
 
     return {
       url: 'http://localhost:8080/document/' + filename,
+      key : filename
     };
   }
 
   /* implemented 1 offer */
   private async convertImageTopdf(convertDTO: ConvertDTO) {
+
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
-    const image = await pdfDoc.embedJpg(buffer);
+    let image : PDFImage;
+    if(convertDTO.fromType == 'jpg'){
+      image = await pdfDoc.embedJpg( buffer);
+    }else if(convertDTO.fromType=='png'){
+      image = await pdfDoc.embedPng(buffer);
+    }else{
+      throw new HttpException("invalid file format",HttpStatus.BAD_REQUEST) 
+    }
 
     const page = pdfDoc.addPage();
     page.drawImage(image, {});
@@ -173,6 +283,7 @@ export class DocumentService {
 
     return {
       url: 'http://localhost:8080/document/' + filename,
+      key:filename,
     };
   }
 }

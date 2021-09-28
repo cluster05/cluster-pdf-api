@@ -13,36 +13,41 @@ import { join } from 'path';
 import { ConvertDTO } from './dto/convert.dto';
 import { DocumentService } from './document.service';
 import { MergeDTO } from './dto/merge.dto';
-
+import { SplitDTO } from './dto/split.dto';
+import { CompressDTO } from './dto/compress.dto';
 @Controller('document')
 export class DocumentController {
   constructor(private documentService: DocumentService) { }
 
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
-  async uplaod(@UploadedFile() file: Express.Multer.File) {
-      return await this.documentService.upload(file);
+  async upload(@UploadedFile() file: Express.Multer.File) {
+    return await this.documentService.upload(file);
   }
+
+  @Get('/:document')
+  getFile(@Param('document') document: string, @Res() res) {
+    return res.sendFile(join(__dirname, '../documents/' + document));
+  }  
   
   @Post('/convert')
-  convert(@Body() convertDTO: ConvertDTO) {
-    return this.documentService.convert(convertDTO);
+  async convert(@Body() convertDTO: ConvertDTO) {
+    return await this.documentService.convert(convertDTO);
   }
 
   @Post('/merge')
-  merge(@Body() mergeDTO: MergeDTO) {
-    return this.documentService.merge(mergeDTO);
+  async merge(@Body() mergeDTO: MergeDTO) {
+    return await this.documentService.merge(mergeDTO);
   }
 
-  @Post('/compess')
-  compress(){
-    return this.documentService.compress();
+  @Post('/compress')
+  async compress(@Body() compressDTO:CompressDTO){
+    return await this.documentService.compress(compressDTO);
   }
 
-  @Post()
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
-    return this.documentService.upload(file);
+  @Post('/split')
+  async split(@Body() splitDTO:SplitDTO){
+    return await this.documentService.split(splitDTO);
   }
 
 }
