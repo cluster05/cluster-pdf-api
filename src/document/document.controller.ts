@@ -26,13 +26,7 @@ export class DocumentController {
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File) {
-    this.logger.log('[Upload] file :')
-    const fileInfo = {
-      filename : file.filename,
-      fileSize : file.size,
-      mimetype : file.mimetype
-    }
-    this.logger.log(fileInfo);
+    this.logger.log(`[Upload] file  : ${file.originalname}  fileSize : ${file.size}  type of : ${file.mimetype}  ` )
     return await this.documentService.upload(file);
   }
 
@@ -44,7 +38,7 @@ export class DocumentController {
   
   @Post('/convert')
   async convert(@Body() convertDTO: ConvertDTO) {
-    this.logger.log(`[Convert] URL : ${convertDTO.url} \n from [${convertDTO.from}-${convertDTO.fromType}] to [${convertDTO.to}-${convertDTO.toType}]`)
+    this.logger.log(`[Convert] URL : ${convertDTO.url} from [${convertDTO.from}-${convertDTO.fromType}] to [${convertDTO.to}-${convertDTO.toType}]`)
     return await this.documentService.convert(convertDTO);
   }
 

@@ -30,9 +30,9 @@ export class DocumentService {
     });
   }
 
-  private async uploadS3(file:Buffer | Uint8Array,filename :string){
-      this.logger.log('[Upload S3] stated');
-      const s3 = this.getS3();
+  private async uploadS3(file: Buffer | Uint8Array ,filename :string){
+      this.logger.log('[Upload S3] Started');
+      const s3 = this.getS3();      
       const params = {
         Bucket : process.env.AWS_BUCKET_NAME,
         Key: filename,
@@ -44,8 +44,9 @@ export class DocumentService {
             this.logger.warn('[Upload S3] Failed');
             this.logger.error(err);
             reject(err.message);
+            return
           }
-          this.logger.log('[Upload S3] Success');
+          this.logger.log('[Upload S3] Success');          
           resolve({
             url: data.Location,
             key: data.Key
@@ -62,7 +63,6 @@ export class DocumentService {
       this.logger.warn("[upalod] Invalid File Error")
       throw new HttpException("invalid file",HttpStatus.BAD_REQUEST);
     }
-    
   try{  
    
     const fileSplit = file.originalname.split('.');
@@ -80,26 +80,26 @@ export class DocumentService {
   
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
-    this.logger.warn("[Merge] Started ")
+    this.logger.log("[Merge] Started ")
 
     try {
       const pdfLoader: PDFDocument[] = [];
 
-      this.logger.warn("[Merge] Loading files stated")
+      this.logger.log("[Merge] Loading files stated")
       await Promise.all(
         mergeDTO.urls.map(async (url,index) => {
-          this.logger.warn("[Merge] Loading buffer file : " + index )
+          this.logger.log("[Merge] Loading buffer file : " + index )
           const buffer = await fetch(url).then((res) => res.arrayBuffer());
-          this.logger.warn("[Merge] Buffer Loaded for file : " + index )
+          this.logger.log("[Merge] Buffer Loaded for file : " + index )
           const laoder = await PDFDocument.load(buffer);
           pdfLoader.push(laoder);
         }),
       );
-      this.logger.warn("[Merge] Loading files done")
+      this.logger.log("[Merge] Loading files done")
 
       const mergedPdf = await PDFDocument.create();
       
-      this.logger.warn("[Merge] Merging stated")
+      this.logger.log("[Merge] Merging stated")
 
       await Promise.all(
         pdfLoader.map(async (pdf) => {
@@ -108,7 +108,7 @@ export class DocumentService {
         }),
       );
       const pdfBytes = await mergedPdf.save();
-      this.logger.warn("[Merge] Merging done")
+      this.logger.log("[Merge] Merging done")
       
       const filename = uuidv4() + '.pdf';
       
@@ -356,4 +356,5 @@ export class DocumentService {
     
     }
   }
+
 }
