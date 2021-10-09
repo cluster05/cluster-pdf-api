@@ -14,15 +14,14 @@ export class ConvertDTO {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['word','excel','ppt','png','pdf'])
+  @IsIn(['doc','docx','xlx','xlsx','ppt','png','pdf'])
   fromType : string;
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['word','excel','ppt','png','pdf'])
+  @IsIn(['doc','docx','xlx','xlsx','ppt','png','pdf'])
   toType :string;
 
-  @IsNotEmpty()
   pages : number | number[]
 
   @IsString()
