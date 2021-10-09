@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
@@ -21,6 +21,8 @@ const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
 
+  private readonly logger = new Logger(DocumentService.name);
+
   private getS3() {
     return new S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -29,7 +31,7 @@ export class DocumentService {
   }
 
   private async uploadS3(file:Buffer | Uint8Array,filename :string){
-
+      this.logger.log('[Upload S3] stated');
       const s3 = this.getS3();
       const params = {
         Bucket : process.env.AWS_BUCKET_NAME,
@@ -39,8 +41,11 @@ export class DocumentService {
       return new Promise((resolve,reject)=>{
         s3.upload(params,(err,data)=>{
           if(err){
+            this.logger.warn('[Upload S3] Failed');
+            this.logger.error(err);
             reject(err.message);
           }
+          this.logger.log('[Upload S3] Success');
           resolve({
             url: data.Location,
             key: data.Key
@@ -54,9 +59,10 @@ export class DocumentService {
   async upload(file: Express.Multer.File) {
 
     if(!file){
+      this.logger.warn("[upalod] Invalid File Error")
       throw new HttpException("invalid file",HttpStatus.BAD_REQUEST);
     }
-
+    
   try{  
    
     const fileSplit = file.originalname.split('.');
@@ -66,24 +72,34 @@ export class DocumentService {
     return await this.uploadS3(file.buffer,filename) 
        
     }catch(error){
+      this.logger.warn("[Upload] Error ")
+      this.logger.error(error);
       throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   
   /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
+    this.logger.warn("[Merge] Started ")
+
     try {
       const pdfLoader: PDFDocument[] = [];
 
+      this.logger.warn("[Merge] Loading files stated")
       await Promise.all(
-        mergeDTO.urls.map(async (url) => {
+        mergeDTO.urls.map(async (url,index) => {
+          this.logger.warn("[Merge] Loading buffer file : " + index )
           const buffer = await fetch(url).then((res) => res.arrayBuffer());
+          this.logger.warn("[Merge] Buffer Loaded for file : " + index )
           const laoder = await PDFDocument.load(buffer);
           pdfLoader.push(laoder);
         }),
       );
+      this.logger.warn("[Merge] Loading files done")
 
       const mergedPdf = await PDFDocument.create();
+      
+      this.logger.warn("[Merge] Merging stated")
 
       await Promise.all(
         pdfLoader.map(async (pdf) => {
@@ -92,12 +108,15 @@ export class DocumentService {
         }),
       );
       const pdfBytes = await mergedPdf.save();
-
+      this.logger.warn("[Merge] Merging done")
+      
       const filename = uuidv4() + '.pdf';
       
       return await this.uploadS3(pdfBytes,filename);
 
-    } catch (err) {
+    } catch (error) {    
+      this.logger.warn("[Merge] Error ")
+      this.logger.error(error); 
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -108,26 +127,36 @@ export class DocumentService {
 
   /* implemented 1 offer */
   async split(splitDTO :SplitDTO){
+    this.logger.warn("[Split] stated")
 
     const pagesToAdd = splitDTO.pages.map(p=>p - 1);
 
     try {
 
+      this.logger.warn("[Split] Buffer Loading")
+
       const pdf = await fetch(splitDTO.url).then((res) => res.arrayBuffer());
+      this.logger.warn("[Split] Buffer Loading Done")
+      
       const getPdf = await PDFDocument.load(pdf);
 
       const newPDF = await PDFDocument.create();
 
       const pages = await newPDF.copyPages(getPdf, pagesToAdd );
+
       pages.forEach((page) => newPDF.addPage(page));
 
       const pdfBytes = await newPDF.save();
+
+      this.logger.warn("[Split] Spliting done.")
 
       const filename = uuidv4() + '.pdf';
       
       return await this.uploadS3(pdfBytes,filename);
 
-    } catch (err) {
+    } catch (error) {
+      this.logger.warn("[Split] Error ")
+      this.logger.error(error);
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -138,18 +167,27 @@ export class DocumentService {
   
   //yet to implement  1 offer
   async compress(compressDTO:CompressDTO){
+    this.logger.warn("[Compress] stated")
 
     try{
+    this.logger.warn("[Compress] Buffer Loading")
 
-       const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-      const compressBuffer = await cptCompress(buffer);
+      const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
+      this.logger.warn("[Compress] Buffer Loading done")
       
+      this.logger.warn("[Compress] Compressing Stated")
+
+      const compressBuffer = await cptCompress(buffer);
+
+      this.logger.warn("[Compress] Compressing Done")
+
       const filename = uuidv4() + '.pdf';
       
       return await this.uploadS3(compressBuffer,filename);
 
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      this.logger.warn("[Compress] Error ")
+      this.logger.error(error);
       throw new HttpException(
         'error in compressing the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -176,14 +214,15 @@ export class DocumentService {
           return await this.convertPdfToImage(convertDTO);
 
         default:
+          this.logger.warn('wrong [to][from] defined')
           throw new HttpException(
             'wrong [to][from] defined.',
             HttpStatus.BAD_REQUEST,
           );
       }
-    } catch (err) {
-      console.log(err);
-      
+    } catch (error) {
+      this.logger.warn('[Convert] Error')
+      this.logger.error(error);
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -197,7 +236,10 @@ export class DocumentService {
 
   // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
+    
+    this.logger.log('[ConvertPdfToImage] Stated')    
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+    this.logger.log('[ConvertPdfToImage] Buffer loaded')    
 
     const options =  {
       density: 100,
@@ -205,7 +247,10 @@ export class DocumentService {
       width: 2480,
       height: 3508
     };
-    
+  
+    this.logger.log('[ConvertPdfToImage] Options for converting files ')
+    this.logger.log(options);    
+
     try{
       let pages =convertDTO.pages;
 
@@ -221,7 +266,8 @@ export class DocumentService {
       const convetPdfToImage =await fromBuffer(buffer,options).bulk(pages,true);
 
       const builder : { url : string ; key : string , page : number }[] = [];
-
+      
+      this.logger.log('[ConvertPdfToImage] Processing...')    
       await Promise.all(
       convetPdfToImage.map(async (ele) => {
           let base64Data  = ele.base64.replace(/^data:image\/png;base64,/, "");
@@ -239,14 +285,15 @@ export class DocumentService {
         }),
       );
 
-    
+      this.logger.log('[ConvertPdfToImage] Processing sucess')    
+
       return [
         ...builder
       ]
     
     }catch(error){
-      console.log(error);
-      
+      this.logger.warn('[ConvertPdfToImage] Error ')
+      this.logger.error(error)
       throw new HttpException("error in converting file",HttpStatus.INTERNAL_SERVER_ERROR);
     }
      
@@ -256,19 +303,32 @@ export class DocumentService {
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
 
-    const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+    try{
 
-    const filename = uuidv4() + '.' + convertDTO.to;
+      this.logger.log('[ConvertOfficeToPdf] Stated')
+      
+      const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
+      
+      this.logger.log('[ConvertOfficeToPdf] buffer loaded')
+      
+      const filename = uuidv4() + '.' + convertDTO.to;
+      
+      const done = await libreConvert(buffer, convertDTO.to, undefined);
+      
+      return await this.uploadS3(done,filename);
 
-    const done = await libreConvert(buffer, convertDTO.to, undefined);
-
-    return await this.uploadS3(done,filename);
+    }catch(error){
+      this.logger.warn("[ConvertOfficeToPdf] Error ")
+      this.logger.error(error);
+      throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 
   }
 
   /* implemented 1 offer */
   private async convertImageTopdf(convertDTO: ConvertDTO) {
 
+    this.logger.log('[ConvertImageToPdf] Stated')
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
     const pdfDoc = await PDFDocument.create();
@@ -281,11 +341,19 @@ export class DocumentService {
       throw new HttpException("invalid file format",HttpStatus.BAD_REQUEST) 
     }
 
-    const page = pdfDoc.addPage();
-    page.drawImage(image, {});
-    const pdfBytes = await pdfDoc.save();
+    try{
 
-    const filename = uuidv4() + '.pdf';
-    return await this.uploadS3(pdfBytes,filename);
+      const page = pdfDoc.addPage();
+      page.drawImage(image, {});
+      const pdfBytes = await pdfDoc.save();
+      const filename = uuidv4() + '.pdf';
+      return await this.uploadS3(pdfBytes,filename);
+    
+    }catch(error){
+      this.logger.warn("[ConvertImageToPdf] Error ")
+      this.logger.error(error);
+      throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
+    
+    }
   }
 }
