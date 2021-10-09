@@ -26,8 +26,13 @@ export class DocumentController {
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File) {
-    this.logger.log('[Upload] file : ')
-    this.logger.log(file)
+    this.logger.log('[Upload] file :')
+    const fileInfo = {
+      filename : file.filename,
+      fileSize : file.size,
+      mimetype : file.mimetype
+    }
+    this.logger.log(fileInfo);
     return await this.documentService.upload(file);
   }
 
