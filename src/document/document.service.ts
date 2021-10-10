@@ -30,7 +30,7 @@ export class DocumentService {
     });
   }
 
-  private async uploadS3(file: Buffer | Uint8Array ,filename :string){
+  private async uploadS3(file: Buffer ,filename :string){
       this.logger.log('[Upload S3] Started');
       const s3 = this.getS3();      
       const params = {
@@ -108,11 +108,12 @@ export class DocumentService {
         }),
       );
       const pdfBytes = await mergedPdf.save();
+      const buf = this.conversion(pdfBytes);
       this.logger.log("[Merge] Merging done")
       
       const filename = uuidv4() + '.pdf';
       
-      return await this.uploadS3(pdfBytes,filename);
+      return await this.uploadS3(buf,filename);
 
     } catch (error) {    
       this.logger.warn("[Merge] Error ")
@@ -127,16 +128,16 @@ export class DocumentService {
 
   /* implemented 1 offer */
   async split(splitDTO :SplitDTO){
-    this.logger.warn("[Split] stated")
+    this.logger.log("[Split] stated")
 
     const pagesToAdd = splitDTO.pages.map(p=>p - 1);
 
     try {
 
-      this.logger.warn("[Split] Buffer Loading")
+      this.logger.log("[Split] Buffer Loading")
 
       const pdf = await fetch(splitDTO.url).then((res) => res.arrayBuffer());
-      this.logger.warn("[Split] Buffer Loading Done")
+      this.logger.log("[Split] Buffer Loading Done")
       
       const getPdf = await PDFDocument.load(pdf);
 
@@ -147,12 +148,14 @@ export class DocumentService {
       pages.forEach((page) => newPDF.addPage(page));
 
       const pdfBytes = await newPDF.save();
+      const buf = this.conversion(pdfBytes);
 
-      this.logger.warn("[Split] Spliting done.")
+      this.logger.log("[Split] Spliting done.")
 
       const filename = uuidv4() + '.pdf';
       
-      return await this.uploadS3(pdfBytes,filename);
+
+      return await this.uploadS3(buf,filename);
 
     } catch (error) {
       this.logger.warn("[Split] Error ")
@@ -167,19 +170,19 @@ export class DocumentService {
   
   //yet to implement  1 offer
   async compress(compressDTO:CompressDTO){
-    this.logger.warn("[Compress] stated")
+    this.logger.log("[Compress] stated")
 
     try{
-    this.logger.warn("[Compress] Buffer Loading")
+    this.logger.log("[Compress] Buffer Loading")
 
       const buffer = await fetch(compressDTO.url).then((res: any) => res.buffer());
-      this.logger.warn("[Compress] Buffer Loading done")
+      this.logger.log("[Compress] Buffer Loading done")
       
-      this.logger.warn("[Compress] Compressing Stated")
+      this.logger.log("[Compress] Compressing Stated")
 
       const compressBuffer = await cptCompress(buffer);
 
-      this.logger.warn("[Compress] Compressing Done")
+      this.logger.log("[Compress] Compressing Done")
 
       const filename = uuidv4() + '.pdf';
       
@@ -346,8 +349,9 @@ export class DocumentService {
       const page = pdfDoc.addPage();
       page.drawImage(image, {});
       const pdfBytes = await pdfDoc.save();
+      const buf = this.conversion(pdfBytes);
       const filename = uuidv4() + '.pdf';
-      return await this.uploadS3(pdfBytes,filename);
+      return await this.uploadS3(buf,filename);
     
     }catch(error){
       this.logger.warn("[ConvertImageToPdf] Error ")
@@ -355,6 +359,15 @@ export class DocumentService {
       throw new HttpException(error,HttpStatus.INTERNAL_SERVER_ERROR);
     
     }
+  }
+
+  private conversion(file :Uint8Array){
+    var buf = Buffer.alloc(file.byteLength);
+    var view = new Uint8Array(file);
+    for (var i = 0; i < buf.length; ++i) {
+        buf[i] = view[i];
+    }
+    return buf;
   }
 
 }
