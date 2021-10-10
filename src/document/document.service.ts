@@ -15,6 +15,7 @@ import { CompressDTO } from './dto/compress.dto';
 import { compress as cptCompress } from 'cluster-pdf-tools';
 
 import { getS3 } from './s3';
+import { Document } from './dto/document.dto';
 
 
 const libreConvert = promisify(convert);
@@ -23,7 +24,7 @@ export class DocumentService {
 
   private readonly logger = new Logger(DocumentService.name);
 
-  private async uploadS3(file: Buffer ,filename :string){
+  private async uploadS3(file: Buffer ,filename :string) :Promise<Document> {
       this.logger.log('[Upload S3] Started');
       const s3 = getS3();      
       const params = {
@@ -50,7 +51,7 @@ export class DocumentService {
   }
   
   /* upload file without aws */
-  async upload(file: Express.Multer.File) {
+  async upload(file: Express.Multer.File):Promise<Document>  {
 
     if(!file){
       this.logger.warn("[upalod] Invalid File Error")
@@ -72,7 +73,7 @@ export class DocumentService {
   }
   
   /* implemented 1 offer */
-  async merge(mergeDTO: MergeDTO) {
+  async merge(mergeDTO: MergeDTO):Promise<Document>  {
     this.logger.log("[Merge] Started ")
 
     try {
@@ -120,7 +121,7 @@ export class DocumentService {
   }
 
   /* implemented 1 offer */
-  async split(splitDTO :SplitDTO){
+  async split(splitDTO :SplitDTO):Promise<Document> {
     this.logger.log("[Split] stated")
 
     const pagesToAdd = splitDTO.pages.map(p=>p - 1);
@@ -162,7 +163,7 @@ export class DocumentService {
   }
   
   //yet to implement  1 offer
-  async compress(compressDTO:CompressDTO){
+  async compress(compressDTO:CompressDTO):Promise<Document> {
     this.logger.log("[Compress] stated")
 
     try{
@@ -227,8 +228,7 @@ export class DocumentService {
   }
 
   //yet to implement  3 offer
-  private async convertPdfToOffice(convertDTO: ConvertDTO) {
-  }
+  private async convertPdfToOffice(convertDTO: ConvertDTO) {}
 
   // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
@@ -297,7 +297,7 @@ export class DocumentService {
   }
 
   /* implemented 3 offer */
-  private async convertOfficeToPdf(convertDTO: ConvertDTO) {
+  private async convertOfficeToPdf(convertDTO: ConvertDTO):Promise<Document>  {
 
     try{
 
@@ -322,7 +322,7 @@ export class DocumentService {
   }
 
   /* implemented 1 offer */
-  private async convertImageTopdf(convertDTO: ConvertDTO) {
+  private async convertImageTopdf(convertDTO: ConvertDTO):Promise<Document>  {
 
     this.logger.log('[ConvertImageToPdf] Stated')
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
