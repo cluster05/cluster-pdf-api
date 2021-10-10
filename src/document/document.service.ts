@@ -14,7 +14,7 @@ import { CompressDTO } from './dto/compress.dto';
 
 import { compress as cptCompress } from 'cluster-pdf-tools';
 
-import { S3 } from 'aws-sdk';
+import { getS3 } from './s3';
 
 
 const libreConvert = promisify(convert);
@@ -23,16 +23,9 @@ export class DocumentService {
 
   private readonly logger = new Logger(DocumentService.name);
 
-  private getS3() {
-    return new S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    });
-  }
-
   private async uploadS3(file: Buffer ,filename :string){
       this.logger.log('[Upload S3] Started');
-      const s3 = this.getS3();      
+      const s3 = getS3();      
       const params = {
         Bucket : process.env.AWS_BUCKET_NAME,
         Key: filename,

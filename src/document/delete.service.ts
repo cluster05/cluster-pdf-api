@@ -1,23 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { S3 } from 'aws-sdk';
+import { getS3 } from './s3';
 
 @Injectable()
 export class DeleteService {
 
     private readonly logger = new Logger(DeleteService.name);
-
-    private getS3() {
-        return new S3({
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        });
-    }
       
     @Cron(CronExpression.EVERY_HOUR)
     deleteDocuments(){
       this.logger.log('[DELETE S3] Started');
-      const s3 = this.getS3(); 
+      const s3 = getS3(); 
       
       //get files key from mongodb
       const Objects = [
