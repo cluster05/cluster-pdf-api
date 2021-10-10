@@ -16,6 +16,7 @@ import { DocumentService } from './document.service';
 import { MergeDTO } from './dto/merge.dto';
 import { SplitDTO } from './dto/split.dto';
 import { CompressDTO } from './dto/compress.dto';
+
 @Controller('document')
 export class DocumentController {
 
