@@ -9,9 +9,9 @@ import { RateLimiterModule, RateLimiterGuard } from 'nestjs-rate-limiter'
       ConfigModule.forRoot(),
       RateLimiterModule.register({
         duration: 60, // 60 second 
-        points: 10 ,  // number of hits per duration
+        points: 10 ,  // 10 hits per duration
         errorMessage:"Your opration look suspicious. Please try after minute.",
-        blockDuration:60,
+        blockDuration:60, // unblock after 60 second
       }),
       ScheduleModule.forRoot(),
       DocumentModule,
