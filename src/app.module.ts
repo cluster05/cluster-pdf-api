@@ -4,8 +4,10 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core'
 import { RateLimiterModule, RateLimiterGuard } from 'nestjs-rate-limiter'
+import { MongooseModule } from '@nestjs/mongoose';
 @Module({
   imports: [
+
       ConfigModule.forRoot(),
       RateLimiterModule.register({
         duration: 60, // 60 second 
@@ -15,6 +17,7 @@ import { RateLimiterModule, RateLimiterGuard } from 'nestjs-rate-limiter'
       }),
       ScheduleModule.forRoot(),
       DocumentModule,
+      MongooseModule.forRoot(process.env.MONGO_DB_URL)
     ],
   controllers: [],
   providers: [
