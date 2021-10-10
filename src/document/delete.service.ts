@@ -21,7 +21,7 @@ export class DeleteService {
       
       //get files key from mongodb
       const Objects = [
-            {Key: 'filename.ext'},
+            // {Key: 'filename.ext'},
         ]
         
       const params = {
@@ -31,7 +31,8 @@ export class DeleteService {
         }
       }
 
-      if(Object.length > 0){
+      if(Objects.length > 0){
+
         s3.deleteObjects(params,(err,data)=>{
             if(err){
                 this.logger.warn('[DELETE S3] Failed');
