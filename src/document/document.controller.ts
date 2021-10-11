@@ -25,8 +25,7 @@ export class DocumentController {
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File, @Req() req) {
-    const ip = req.ip;
-    return await this.documentService.upload(file, ip);
+    return await this.documentService.upload(file, req);
   }
 
   @Get('/:document')

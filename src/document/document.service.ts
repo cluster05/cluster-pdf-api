@@ -20,8 +20,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DocumentModel } from './model/document.model';
 
-import axios from 'axios';
-
 const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
@@ -57,7 +55,7 @@ export class DocumentService {
   }
 
   /* upload file without aws */
-  async upload(file: Express.Multer.File, ip: string) {
+  async upload(file: Express.Multer.File, req: any) {
     if (!file) {
       throw new HttpException('invalid file', HttpStatus.BAD_REQUEST);
     }
@@ -67,35 +65,10 @@ export class DocumentService {
       const filename = uuidv4() + '.' + fileExt;
 
       const response = await this.uploadS3(file.buffer, filename);
-      const ax = await axios.get<any>(
-        `http://api.ipstack.com/${ip}?access_key=${process.env.IP_STACK_KEY}`,
-      );
-
-      const axiosReponse = ax.data;
-
-      console.log(ax);
-
-      const ipInfo = {
-        country_code: axiosReponse.country_code,
-        region_code: axiosReponse.region_code,
-        latitude: axiosReponse.latitude,
-        longitude: axiosReponse.longitude,
-      };
-
-      const mongo = {
-        keys: [...response.key],
-        timestamp: Date.now(),
-        oprationStart: Date.now(),
-        oprationEnd: Date.now(),
-        failedReason: '',
-        date: new Date(),
-        ipInfo,
-      };
-      const mongoOpration = await new this.documentModel(mongo).save();
-
+      const id = await this.mongoCreate(response, '');
       return {
         ...response,
-        ...mongoOpration,
+        id,
       };
     } catch (error) {
       this.logger.error(error);
@@ -329,5 +302,31 @@ export class DocumentService {
       buf[i] = view[i];
     }
     return buf;
+  }
+
+  private async mongoCreate(response: DocumentType, ip: string) {
+    const mongo = {
+      keys: [response.key],
+      timestamp: Date.now(),
+      oprationStart: Date.now(),
+      oprationEnd: Date.now(),
+      failedReason: '',
+      date: new Date(),
+      ipInfo: {},
+    };
+    const mongoOpration = await new this.documentModel(mongo).save();
+
+    return mongoOpration._id;
+  }
+
+  private async mongoUpdate(response: DocumentType, id: string) {
+    const mongo = {
+      keys: [response.key],
+      oprationEnd: Date.now(),
+    };
+
+    const mongoOpration = await this.documentModel.findByIdAndUpdate(id, mongo);
+
+    return mongoOpration._id;
   }
 }
