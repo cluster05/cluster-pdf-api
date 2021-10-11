@@ -5,6 +5,7 @@ import {
   Logger,
   Param,
   Post,
+  Req,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -19,46 +20,37 @@ import { CompressDTO } from './dto/compress.dto';
 
 @Controller('document')
 export class DocumentController {
-
-  private readonly logger = new Logger(DocumentController.name);
-
-  constructor(private documentService: DocumentService) { }
+  constructor(private documentService: DocumentService) {}
 
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
-    this.logger.log(`[Upload] file  : ${file.originalname}  fileSize : ${file.size}  type of : ${file.mimetype}  ` )
-    return await this.documentService.upload(file);
+  async upload(@UploadedFile() file: Express.Multer.File, @Req() req) {
+    const ip = req.ip;
+    return await this.documentService.upload(file, ip);
   }
 
   @Get('/:document')
   getFile(@Param('document') document: string, @Res() res) {
-    this.logger.log('[Get] file : '+ document)
     return res.sendFile(join(__dirname, '../documents/' + document));
-  }  
-  
+  }
+
   @Post('/convert')
   async convert(@Body() convertDTO: ConvertDTO) {
-    this.logger.log(`[Convert] URL : ${convertDTO.url} from [${convertDTO.from}-${convertDTO.fromType}] to [${convertDTO.to}-${convertDTO.toType}]`)
     return await this.documentService.convert(convertDTO);
   }
 
   @Post('/merge')
   async merge(@Body() mergeDTO: MergeDTO) {
-    this.logger.log(`[Merge] URL : ${mergeDTO.urls.join(' , ')}`)
     return await this.documentService.merge(mergeDTO);
   }
 
   @Post('/compress')
-  async compress(@Body() compressDTO:CompressDTO){
-    this.logger.log('[Compress] URL : ' + compressDTO.url )
+  async compress(@Body() compressDTO: CompressDTO) {
     return await this.documentService.compress(compressDTO);
   }
 
   @Post('/split')
-  async split(@Body() splitDTO:SplitDTO){
-    this.logger.log('[Split] URL : ' + splitDTO.url + ' ' + '[pages] : ' + splitDTO.pages.join(','))
+  async split(@Body() splitDTO: SplitDTO) {
     return await this.documentService.split(splitDTO);
   }
-
 }

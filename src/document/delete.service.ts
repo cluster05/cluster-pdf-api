@@ -4,39 +4,32 @@ import { getS3 } from './s3';
 
 @Injectable()
 export class DeleteService {
+  private readonly logger = new Logger(DeleteService.name);
 
-    private readonly logger = new Logger(DeleteService.name);
-      
-    @Cron(CronExpression.EVERY_HOUR)
-    deleteDocuments(){
-      this.logger.log('[DELETE S3] Started');
-      const s3 = getS3(); 
-      
-      //get files key from mongodb
-      const Objects = [
-            // {Key: 'filename.ext'},
-        ]
-        
-      const params = {
-        Bucket : process.env.AWS_BUCKET_NAME,
-        Delete: {
-            Objects
+  @Cron(CronExpression.EVERY_HOUR)
+  deleteDocuments() {
+    const s3 = getS3();
+
+    //get files key from mongodb
+    const Objects = [
+      // {Key: 'filename.ext'},
+    ];
+
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Delete: {
+        Objects,
+      },
+    };
+
+    if (Objects.length > 0) {
+      s3.deleteObjects(params, (err, data) => {
+        if (err) {
+          this.logger.error(err);
+          return;
         }
-      }
-
-      if(Objects.length > 0){
-
-        s3.deleteObjects(params,(err,data)=>{
-            if(err){
-                this.logger.warn('[DELETE S3] Failed');
-                this.logger.error(err);
-                return
-            }
-            
-            this.logger.log("******File Batch Deleted******")
-
-        })
-      }
+        this.logger.verbose('Batch File deleted');
+      });
     }
-
+  }
 }
