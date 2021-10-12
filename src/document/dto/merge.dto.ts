@@ -16,4 +16,10 @@ export class MergeDTO {
   @IsString()
   @IsNotEmpty()
   mongoId: string;
+
+  @IsNotEmpty()
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(5)
+  keys: string[];
 }
