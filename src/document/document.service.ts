@@ -65,10 +65,10 @@ export class DocumentService {
       const filename = uuidv4() + '.' + fileExt;
 
       const response = await this.uploadS3(file.buffer, filename);
-      const id = await this.mongoCreate(response, '');
+      const mongoId = await this.mongoStart(response, '');
       return {
         ...response,
-        id,
+        mongoId,
       };
     } catch (error) {
       this.logger.error(error);
@@ -101,7 +101,12 @@ export class DocumentService {
 
       const filename = uuidv4() + '.pdf';
 
-      return await this.uploadS3(buf, filename);
+      const response = await this.uploadS3(buf, filename);
+      // const id = await this.mongoEnd(response, mongoId);
+      return {
+        ...response,
+        id: '',
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(
@@ -131,7 +136,13 @@ export class DocumentService {
 
       const filename = uuidv4() + '.pdf';
 
-      return await this.uploadS3(buf, filename);
+      const response = await this.uploadS3(buf, filename);
+      const documentId = await this.mongoEnd(response, splitDTO.mongoId);
+
+      return {
+        ...response,
+        documentId,
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(
@@ -151,7 +162,13 @@ export class DocumentService {
 
       const filename = uuidv4() + '.pdf';
 
-      return await this.uploadS3(compressBuffer, filename);
+      const response = await this.uploadS3(compressBuffer, filename);
+      const documentId = await this.mongoEnd(response, compressDTO.mongoId);
+
+      return {
+        ...response,
+        documentId,
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(
@@ -261,7 +278,13 @@ export class DocumentService {
 
       const done = await libreConvert(buffer, convertDTO.to, undefined);
 
-      return await this.uploadS3(done, filename);
+      const response = await this.uploadS3(done, filename);
+      const documentId = await this.mongoEnd(response, convertDTO.mongoId);
+
+      return {
+        ...response,
+        documentId,
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -288,7 +311,13 @@ export class DocumentService {
       const pdfBytes = await pdfDoc.save();
       const buf = this.conversion(pdfBytes);
       const filename = uuidv4() + '.pdf';
-      return await this.uploadS3(buf, filename);
+      const response = await this.uploadS3(buf, filename);
+      const documentId = await this.mongoEnd(response, convertDTO.mongoId);
+
+      return {
+        ...response,
+        documentId,
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -304,7 +333,7 @@ export class DocumentService {
     return buf;
   }
 
-  private async mongoCreate(response: DocumentType, ip: string) {
+  private async mongoStart(response: DocumentType, ip: string) {
     const mongo = {
       keys: [response.key],
       timestamp: Date.now(),
@@ -319,14 +348,13 @@ export class DocumentService {
     return mongoOpration._id;
   }
 
-  private async mongoUpdate(response: DocumentType, id: string) {
-    const mongo = {
-      keys: [response.key],
-      oprationEnd: Date.now(),
-    };
+  private async mongoEnd(response: DocumentType, mongoId: string) {
+    const oprationEnd = Date.now();
 
-    const mongoOpration = await this.documentModel.findByIdAndUpdate(id, mongo);
-
+    const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
+      oprationEnd,
+      $push: { keys: response.key },
+    });
     return mongoOpration._id;
   }
 }
