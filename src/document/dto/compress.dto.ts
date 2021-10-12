@@ -1,13 +1,15 @@
-import { IsNotEmpty, IsString, IsUrl } from "class-validator";
+import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
-export class CompressDTO{
+export class CompressDTO {
+  @IsString()
+  @IsNotEmpty()
+  @IsUrl()
+  url: string;
 
-    @IsString()
-    @IsNotEmpty()
-    @IsUrl()
-    url:string;
+  @IsString()
+  @IsNotEmpty()
+  mongoId: string;
 
-    
-    compressType:string;
-    compressPercentage:number
+  compressType: string;
+  compressPercentage: number;
 }

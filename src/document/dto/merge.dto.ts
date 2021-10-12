@@ -1,4 +1,10 @@
-import {  ArrayMaxSize, ArrayMinSize, IsArray, IsNotEmpty } from "class-validator";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsNotEmpty,
+  IsString,
+} from 'class-validator';
 
 export class MergeDTO {
   @IsNotEmpty()
@@ -6,4 +12,8 @@ export class MergeDTO {
   @ArrayMinSize(2)
   @ArrayMaxSize(5)
   urls: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  mongoId: string;
 }

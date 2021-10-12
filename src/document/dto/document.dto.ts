@@ -1,4 +1,4 @@
-export interface DocumentType{
-    key : string;
-    url : string;
+export interface DocumentType {
+  key: string;
+  url: string;
 }

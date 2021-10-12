@@ -1,12 +1,15 @@
-import { IsArray, IsNotEmpty, IsUrl } from "class-validator";
+import { IsArray, IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
-export class SplitDTO{
+export class SplitDTO {
+  @IsNotEmpty()
+  @IsUrl()
+  url: string;
 
-    @IsNotEmpty()
-    @IsUrl()
-    url : string;
+  @IsNotEmpty()
+  @IsArray()
+  pages: number[];
 
-    @IsNotEmpty()
-    @IsArray()
-    pages :number[];   
+  @IsString()
+  @IsNotEmpty()
+  mongoId: string;
 }
