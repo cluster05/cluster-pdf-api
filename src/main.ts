@@ -16,9 +16,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(new ValidationPipe());
-  app.enableCors({
-    allowedHeaders: process.env.ALLOW_HEADER,
-  });
+  app.enableCors();
   app.use(helmet());
 
   logger.log('Application Running on PORT : ' + PORT);

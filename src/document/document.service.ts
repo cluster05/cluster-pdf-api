@@ -137,7 +137,11 @@ export class DocumentService {
       const filename = uuidv4() + '.pdf';
 
       const response = await this.uploadS3(buf, filename);
-      const documentId = await this.mongoEnd(response, splitDTO.mongoId);
+      const documentId = await this.mongoEnd(
+        response,
+        splitDTO.mongoId,
+        'SPLIT',
+      );
 
       return {
         ...response,
@@ -163,7 +167,11 @@ export class DocumentService {
       const filename = uuidv4() + '.pdf';
 
       const response = await this.uploadS3(compressBuffer, filename);
-      const documentId = await this.mongoEnd(response, compressDTO.mongoId);
+      const documentId = await this.mongoEnd(
+        response,
+        compressDTO.mongoId,
+        'COMPRESS',
+      );
 
       return {
         ...response,
@@ -240,6 +248,7 @@ export class DocumentService {
       );
 
       const builder: { url: string; key: string; page: number }[] = [];
+      const keys = [];
 
       await Promise.all(
         convetPdfToImage.map(async (ele) => {
@@ -247,8 +256,8 @@ export class DocumentService {
           base64Data += base64Data.replace('+', ' ');
           const buffer = Buffer.from(base64Data, 'base64');
           const filename = uuidv4() + '.png';
-          const response = (await this.uploadS3(buffer, filename)) as any;
-
+          const response = await this.uploadS3(buffer, filename);
+          keys.push(response.key);
           builder.push({
             url: response.url,
             key: filename,
@@ -257,7 +266,15 @@ export class DocumentService {
         }),
       );
 
-      return [...builder];
+      const mongoId = await this.mongoEndMulti(
+        keys,
+        convertDTO.mongoId,
+        'CONVERT_PDF_TO_IMAGE',
+      );
+      return {
+        images: [...builder],
+        mongoId,
+      };
     } catch (error) {
       this.logger.error(error);
       throw new HttpException(
@@ -279,7 +296,11 @@ export class DocumentService {
       const done = await libreConvert(buffer, convertDTO.to, undefined);
 
       const response = await this.uploadS3(done, filename);
-      const documentId = await this.mongoEnd(response, convertDTO.mongoId);
+      const documentId = await this.mongoEnd(
+        response,
+        convertDTO.mongoId,
+        'CONVERT_OFFICE_TO_PDF',
+      );
 
       return {
         ...response,
@@ -312,7 +333,11 @@ export class DocumentService {
       const buf = this.conversion(pdfBytes);
       const filename = uuidv4() + '.pdf';
       const response = await this.uploadS3(buf, filename);
-      const documentId = await this.mongoEnd(response, convertDTO.mongoId);
+      const documentId = await this.mongoEnd(
+        response,
+        convertDTO.mongoId,
+        'CONVERT_IMAGE_TO_PDF',
+      );
 
       return {
         ...response,
@@ -348,12 +373,32 @@ export class DocumentService {
     return mongoOpration._id;
   }
 
-  private async mongoEnd(response: DocumentType, mongoId: string) {
+  private async mongoEnd(
+    response: DocumentType,
+    mongoId: string,
+    opration: string,
+  ) {
     const oprationEnd = Date.now();
 
     const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
       oprationEnd,
+      opration,
       $push: { keys: response.key },
+    });
+    return mongoOpration._id;
+  }
+
+  private async mongoEndMulti(
+    response: string[],
+    mongoId: string,
+    opration: string,
+  ) {
+    const oprationEnd = Date.now();
+
+    const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
+      oprationEnd,
+      opration,
+      $push: { keys: { $each: response } },
     });
     return mongoOpration._id;
   }
