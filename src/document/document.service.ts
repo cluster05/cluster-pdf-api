@@ -407,4 +407,14 @@ export class DocumentService {
     });
     return mongoOpration._id;
   }
+
+  private async mongoReason(failedReason: string, mongoId: string) {
+    const oprationEnd = Date.now();
+
+    const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
+      oprationEnd,
+      failedReason,
+    });
+    return mongoOpration._id;
+  }
 }
