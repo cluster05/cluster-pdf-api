@@ -102,11 +102,8 @@ export class DocumentService {
       const filename = uuidv4() + '.pdf';
 
       const response = await this.uploadS3(buf, filename);
-      const mongoId = await this.mongoEndMulti(
-        mergeDTO.keys,
-        mergeDTO.mongoId,
-        'MERGE',
-      );
+      const keys = mergeDTO.keys.slice(0, mergeDTO.keys.length);
+      const mongoId = await this.mongoEndMulti(keys, mergeDTO.mongoId, 'MERGE');
 
       return {
         ...response,
