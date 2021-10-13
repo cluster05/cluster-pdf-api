@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model } from 'mongoose';
@@ -30,7 +30,7 @@ export class DeleteService {
         if (aggregateKeys.length > 0) {
           s3.deleteObjects(params, async (err, data) => {
             if (err) {
-              return;
+              throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
             }
             await this.updateDeleteAndUnsetKeys(lessThanOneHour);
           });
@@ -61,7 +61,7 @@ export class DeleteService {
         $unwind: '$keys',
       },
       {
-        $project: { key: '$keys', _id: 0 },
+        $project: { Key: '$keys', _id: 0 },
       },
     ]);
   }
