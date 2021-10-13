@@ -67,7 +67,6 @@ export class DocumentService {
     });
   }
 
-  /* upload file without aws */
   async upload(file: Express.Multer.File, req: any) {
     if (!file) {
       throw new HttpException('invalid file', HttpStatus.BAD_REQUEST);
@@ -91,7 +90,6 @@ export class DocumentService {
     }
   }
 
-  /* implemented 1 offer */
   async merge(mergeDTO: MergeDTO) {
     try {
       const pdfLoader: PDFDocument[] = [];
@@ -137,7 +135,6 @@ export class DocumentService {
     }
   }
 
-  /* implemented 1 offer */
   async split(splitDTO: SplitDTO) {
     const pagesToAdd = splitDTO.pages.map((p) => p - 1);
 
@@ -177,7 +174,6 @@ export class DocumentService {
     }
   }
 
-  //yet to implement  1 offer
   async compress(compressDTO: CompressDTO) {
     try {
       const buffer = await fetch(compressDTO.url).then((res: any) =>
@@ -207,10 +203,6 @@ export class DocumentService {
     }
   }
 
-  /* 
-    implemented 4 offer
-    yet to implement 4 offer
-  */
   async convert(convertDTO: ConvertDTO) {
     try {
       switch (convertDTO.from + '_' + convertDTO.to) {
@@ -239,10 +231,8 @@ export class DocumentService {
     }
   }
 
-  //yet to implement  3 offer
   private async convertPdfToOffice(convertDTO: ConvertDTO) {}
 
-  // implemented 1 offer
   private async convertPdfToImage(convertDTO: ConvertDTO) {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
     const options = {
@@ -298,7 +288,6 @@ export class DocumentService {
     };
   }
 
-  /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
     const opration = `CONVERT_${convertDTO.fromType.toUpperCase()}_TO_${convertDTO.toType.toUpperCase()}`;
 
@@ -321,7 +310,6 @@ export class DocumentService {
     };
   }
 
-  /* implemented 1 offer */
   private async convertImageTopdf(convertDTO: ConvertDTO) {
     const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
