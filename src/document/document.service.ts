@@ -84,8 +84,10 @@ export class DocumentService {
         mongoId,
       };
     } catch (error) {
-      this.logger.error(error);
-      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error occured while uploading the file. Plase try again.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -127,11 +129,9 @@ export class DocumentService {
         mongoId,
       };
     } catch (error) {
-      this.logger.error(error);
       await this.mongoReason(ERROR_MERGE, mergeDTO.mongoId);
-
       throw new HttpException(
-        'error in converting the file.',
+        'Error occured while merging the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -169,10 +169,9 @@ export class DocumentService {
         documentId,
       };
     } catch (error) {
-      this.logger.error(error);
       await this.mongoReason(ERROR_SPLIT, splitDTO.mongoId);
       throw new HttpException(
-        'error in converting the file.',
+        'Error occured while spliting the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -200,10 +199,9 @@ export class DocumentService {
         documentId,
       };
     } catch (error) {
-      this.logger.error(error);
       await this.mongoReason(ERROR_COMPRESS, compressDTO.mongoId);
       throw new HttpException(
-        'error in compressing the file.',
+        'Error occured while compressing the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -235,7 +233,7 @@ export class DocumentService {
       this.logger.error(error);
       await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
       throw new HttpException(
-        'error in converting the file.',
+        'Error occured while converting the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -254,88 +252,73 @@ export class DocumentService {
       height: 3508,
     };
 
-    try {
-      let pages = convertDTO.pages;
+    let pages = convertDTO.pages;
 
-      if (Array.isArray(pages)) {
-        if (pages.length == 0) {
-          throw new HttpException('invalid array', HttpStatus.BAD_REQUEST);
-        }
+    if (Array.isArray(pages)) {
+      if (pages.length == 0) {
+        throw new HttpException('invalid array', HttpStatus.BAD_REQUEST);
       }
-
-      if (typeof pages == 'undefined') {
-        pages = -1;
-      }
-      const convetPdfToImage = await fromBuffer(buffer, options).bulk(
-        pages,
-        true,
-      );
-
-      const builder: { url: string; key: string; page: number }[] = [];
-      const keys = [];
-
-      await Promise.all(
-        convetPdfToImage.map(async (ele) => {
-          let base64Data = ele.base64.replace(/^data:image\/png;base64,/, '');
-          base64Data += base64Data.replace('+', ' ');
-          const buffer = Buffer.from(base64Data, 'base64');
-          const filename = uuidv4() + '.png';
-          const response = await this.uploadS3(buffer, filename);
-          keys.push(response.key);
-          builder.push({
-            url: response.url,
-            key: filename,
-            page: ele.page,
-          });
-        }),
-      );
-
-      const mongoId = await this.mongoEndMulti(
-        keys,
-        convertDTO.mongoId,
-        OPRATION_CONVERT_PDF_TO_IMAGE,
-      );
-      return {
-        images: [...builder],
-        mongoId,
-      };
-    } catch (error) {
-      this.logger.error(error);
-      throw new HttpException(
-        'error in converting file',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
+
+    if (typeof pages == 'undefined') {
+      pages = -1;
+    }
+    const convetPdfToImage = await fromBuffer(buffer, options).bulk(
+      pages,
+      true,
+    );
+
+    const builder: { url: string; key: string; page: number }[] = [];
+    const keys = [];
+
+    await Promise.all(
+      convetPdfToImage.map(async (ele) => {
+        let base64Data = ele.base64.replace(/^data:image\/png;base64,/, '');
+        base64Data += base64Data.replace('+', ' ');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const filename = uuidv4() + '.png';
+        const response = await this.uploadS3(buffer, filename);
+        keys.push(response.key);
+        builder.push({
+          url: response.url,
+          key: filename,
+          page: ele.page,
+        });
+      }),
+    );
+
+    const mongoId = await this.mongoEndMulti(
+      keys,
+      convertDTO.mongoId,
+      OPRATION_CONVERT_PDF_TO_IMAGE,
+    );
+    return {
+      images: [...builder],
+      mongoId,
+    };
   }
 
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
     const opration = `CONVERT_${convertDTO.fromType.toUpperCase()}_TO_${convertDTO.toType.toUpperCase()}`;
 
-    try {
-      const buffer = await fetch(convertDTO.url).then((res: any) =>
-        res.buffer(),
-      );
+    const buffer = await fetch(convertDTO.url).then((res: any) => res.buffer());
 
-      const filename = uuidv4() + '.' + convertDTO.to;
+    const filename = uuidv4() + '.' + convertDTO.to;
 
-      const done = await libreConvert(buffer, convertDTO.to, undefined);
+    const done = await libreConvert(buffer, convertDTO.to, undefined);
 
-      const response = await this.uploadS3(done, filename);
-      const documentId = await this.mongoEnd(
-        response,
-        convertDTO.mongoId,
-        opration,
-      );
+    const response = await this.uploadS3(done, filename);
+    const documentId = await this.mongoEnd(
+      response,
+      convertDTO.mongoId,
+      opration,
+    );
 
-      return {
-        ...response,
-        documentId,
-      };
-    } catch (error) {
-      this.logger.error(error);
-      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    return {
+      ...response,
+      documentId,
+    };
   }
 
   /* implemented 1 offer */
@@ -352,27 +335,22 @@ export class DocumentService {
       throw new HttpException('invalid file format', HttpStatus.BAD_REQUEST);
     }
 
-    try {
-      const page = pdfDoc.addPage();
-      page.drawImage(image, {});
-      const pdfBytes = await pdfDoc.save();
-      const buf = this.conversion(pdfBytes);
-      const filename = uuidv4() + '.pdf';
-      const response = await this.uploadS3(buf, filename);
-      const documentId = await this.mongoEnd(
-        response,
-        convertDTO.mongoId,
-        OPRATION_CONVERT_IMAGE_TO_PDF,
-      );
+    const page = pdfDoc.addPage();
+    page.drawImage(image, {});
+    const pdfBytes = await pdfDoc.save();
+    const buf = this.conversion(pdfBytes);
+    const filename = uuidv4() + '.pdf';
+    const response = await this.uploadS3(buf, filename);
+    const documentId = await this.mongoEnd(
+      response,
+      convertDTO.mongoId,
+      OPRATION_CONVERT_IMAGE_TO_PDF,
+    );
 
-      return {
-        ...response,
-        documentId,
-      };
-    } catch (error) {
-      this.logger.error(error);
-      throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    return {
+      ...response,
+      documentId,
+    };
   }
 
   private conversion(file: Uint8Array) {
