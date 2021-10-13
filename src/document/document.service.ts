@@ -214,14 +214,15 @@ export class DocumentService {
 
         default:
           throw new HttpException(
-            'wrong [to][from] defined.',
+            'wrong request body data defined.',
             HttpStatus.BAD_REQUEST,
           );
       }
     } catch (error) {
       await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
       throw new HttpException(
-        'Error occured while converting the file. Plase try again.',
+        error.message ||
+          'Error occured while converting the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
