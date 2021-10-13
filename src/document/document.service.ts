@@ -19,6 +19,19 @@ import { DocumentType } from './dto/document.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DocumentModel } from './model/document.model';
+import {
+  OPERATION_MERGE,
+  OPRATION_COMPRESS,
+  OPRATION_CONVERT_IMAGE_TO_PDF,
+  OPRATION_CONVERT_PDF_TO_IMAGE,
+  OPRATION_SPLIT,
+} from 'src/constant/upload.constant';
+import {
+  ERROR_COMPRESS,
+  ERROR_CONVERT,
+  ERROR_MERGE,
+  ERROR_SPLIT,
+} from 'src/constant/error.constant';
 
 const libreConvert = promisify(convert);
 @Injectable()
@@ -103,7 +116,11 @@ export class DocumentService {
 
       const response = await this.uploadS3(buf, filename);
       const keys = mergeDTO.keys.slice(0, mergeDTO.keys.length);
-      const mongoId = await this.mongoEndMulti(keys, mergeDTO.mongoId, 'MERGE');
+      const mongoId = await this.mongoEndMulti(
+        keys,
+        mergeDTO.mongoId,
+        OPERATION_MERGE,
+      );
 
       return {
         ...response,
@@ -111,6 +128,8 @@ export class DocumentService {
       };
     } catch (error) {
       this.logger.error(error);
+      await this.mongoReason(ERROR_MERGE, mergeDTO.mongoId);
+
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -142,7 +161,7 @@ export class DocumentService {
       const documentId = await this.mongoEnd(
         response,
         splitDTO.mongoId,
-        'SPLIT',
+        OPRATION_SPLIT,
       );
 
       return {
@@ -151,6 +170,7 @@ export class DocumentService {
       };
     } catch (error) {
       this.logger.error(error);
+      await this.mongoReason(ERROR_SPLIT, splitDTO.mongoId);
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -172,7 +192,7 @@ export class DocumentService {
       const documentId = await this.mongoEnd(
         response,
         compressDTO.mongoId,
-        'COMPRESS',
+        OPRATION_COMPRESS,
       );
 
       return {
@@ -181,6 +201,7 @@ export class DocumentService {
       };
     } catch (error) {
       this.logger.error(error);
+      await this.mongoReason(ERROR_COMPRESS, compressDTO.mongoId);
       throw new HttpException(
         'error in compressing the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -212,6 +233,7 @@ export class DocumentService {
       }
     } catch (error) {
       this.logger.error(error);
+      await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
       throw new HttpException(
         'error in converting the file.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -271,7 +293,7 @@ export class DocumentService {
       const mongoId = await this.mongoEndMulti(
         keys,
         convertDTO.mongoId,
-        'CONVERT_PDF_TO_IMAGE',
+        OPRATION_CONVERT_PDF_TO_IMAGE,
       );
       return {
         images: [...builder],
@@ -288,6 +310,8 @@ export class DocumentService {
 
   /* implemented 3 offer */
   private async convertOfficeToPdf(convertDTO: ConvertDTO) {
+    const opration = `CONVERT_${convertDTO.fromType.toUpperCase()}_TO_${convertDTO.toType.toUpperCase()}`;
+
     try {
       const buffer = await fetch(convertDTO.url).then((res: any) =>
         res.buffer(),
@@ -301,7 +325,7 @@ export class DocumentService {
       const documentId = await this.mongoEnd(
         response,
         convertDTO.mongoId,
-        'CONVERT_OFFICE_TO_PDF',
+        opration,
       );
 
       return {
@@ -338,7 +362,7 @@ export class DocumentService {
       const documentId = await this.mongoEnd(
         response,
         convertDTO.mongoId,
-        'CONVERT_IMAGE_TO_PDF',
+        OPRATION_CONVERT_IMAGE_TO_PDF,
       );
 
       return {
