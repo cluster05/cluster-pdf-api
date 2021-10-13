@@ -17,6 +17,23 @@ export class DeleteService {
   async deleteDocuments() {
     const s3 = getS3();
 
+    /* 
+    db.documents.aggregate([
+    {
+        $match:{
+        isDeleted:false,
+        timestamp: { $lt : 1634060768098 }
+        }      
+    },
+    {
+        $unwind:"$keys"
+    },
+    {
+        $project:{ key : "$keys" , _id : 0 }
+    }
+    ])
+    */
+
     const Objects = [
       // {Key: 'filename.ext'},
     ];
