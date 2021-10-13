@@ -32,8 +32,10 @@ import {
   ERROR_MERGE,
   ERROR_SPLIT,
 } from 'src/constant/error.constant';
+import { MAX_FILE_SIZE, FILE_SIZE_NUMBER } from 'src/constant/file.constant';
 
 const libreConvert = promisify(convert);
+
 @Injectable()
 export class DocumentService {
   constructor(
@@ -66,8 +68,19 @@ export class DocumentService {
 
   async upload(file: Express.Multer.File, req: any) {
     if (!file) {
-      throw new HttpException('invalid file', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'File not found present.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new HttpException(
+        `Sorry currently we are not accepting file size greater than ${FILE_SIZE_NUMBER}MB.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
       const fileSplit = file.originalname.split('.');
       const fileExt = fileSplit[fileSplit.length - 1];
@@ -81,7 +94,8 @@ export class DocumentService {
       };
     } catch (error) {
       throw new HttpException(
-        'Error occured while uploading the file. Plase try again.',
+        error?.message ||
+          'Error occured while uploading the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -221,7 +235,7 @@ export class DocumentService {
     } catch (error) {
       await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
       throw new HttpException(
-        error.message ||
+        error?.message ||
           'Error occured while converting the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
