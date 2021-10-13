@@ -9,10 +9,10 @@ import { MongooseModule } from '@nestjs/mongoose';
   imports: [
     ConfigModule.forRoot(),
     RateLimiterModule.register({
-      duration: 60, // 60 second
-      points: 10, // 10 hits per duration
+      duration: 60,
+      points: 10,
       errorMessage: 'Your opration look suspicious. Please try after minute.',
-      blockDuration: 60, // unblock after 60 second
+      blockDuration: 60,
     }),
     ScheduleModule.forRoot(),
     DocumentModule,
