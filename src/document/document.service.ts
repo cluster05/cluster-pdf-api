@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConvertDTO } from './dto/convert.dto';
 import { MergeDTO } from './dto/merge.dto';
 
@@ -36,8 +36,6 @@ import {
 const libreConvert = promisify(convert);
 @Injectable()
 export class DocumentService {
-  private readonly logger = new Logger(DocumentService.name);
-
   constructor(
     @InjectModel('Documents') private documentModel: Model<DocumentModel>,
   ) {}
@@ -55,7 +53,6 @@ export class DocumentService {
     return new Promise((resolve, reject) => {
       s3.upload(params, (err, data) => {
         if (err) {
-          this.logger.error(err);
           reject(err.message);
           return;
         }
@@ -222,7 +219,6 @@ export class DocumentService {
           );
       }
     } catch (error) {
-      this.logger.error(error);
       await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
       throw new HttpException(
         'Error occured while converting the file. Plase try again.',

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Model } from 'mongoose';
@@ -7,8 +7,6 @@ import { getS3 } from './s3';
 
 @Injectable()
 export class DeleteService {
-  private readonly logger = new Logger(DeleteService.name);
-
   constructor(
     @InjectModel('Documents') private documentModel: Model<DocumentModel>,
   ) {}
@@ -48,10 +46,8 @@ export class DeleteService {
     if (Objects.length > 0) {
       s3.deleteObjects(params, (err, data) => {
         if (err) {
-          this.logger.error(err);
           return;
         }
-        this.logger.verbose('Batch File deleted');
       });
     }
   }
