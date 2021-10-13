@@ -11,44 +11,77 @@ export class DeleteService {
     @InjectModel('Documents') private documentModel: Model<DocumentModel>,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async deleteDocuments() {
     const s3 = getS3();
 
-    /* 
-    db.documents.aggregate([
-    {
-        $match:{
-        isDeleted:false,
-        timestamp: { $lt : 1634060768098 }
-        }      
-    },
-    {
-        $unwind:"$keys"
-    },
-    {
-        $project:{ key : "$keys" , _id : 0 }
-    }
-    ])
-    */
+    let lessThanOneHour = Date.now() - 3600000;
+    const aggregateKeys = await this.aggregateDocumentKeys(lessThanOneHour);
 
-    const Objects = [
-      // {Key: 'filename.ext'},
-    ];
+    try {
+      if (aggregateKeys.length > 0) {
+        const params = {
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Delete: {
+            Objects: aggregateKeys,
+          },
+        };
 
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Delete: {
-        Objects,
-      },
-    };
-
-    if (Objects.length > 0) {
-      s3.deleteObjects(params, (err, data) => {
-        if (err) {
-          return;
+        if (aggregateKeys.length > 0) {
+          s3.deleteObjects(params, async (err, data) => {
+            if (err) {
+              return;
+            }
+            await this.updateDeleteAndUnsetKeys(lessThanOneHour);
+          });
         }
-      });
+      }
+    } catch (error) {
+      const timestamp = Date.now();
+      const mongo = {
+        opration: 'ERROR_DELETE_DATA',
+        error,
+        isDeleted: true,
+        timestamp,
+      };
+
+      await new this.documentModel(mongo).save();
     }
+  }
+
+  async aggregateDocumentKeys(lessThanOneHour: number) {
+    return await this.documentModel.aggregate([
+      {
+        $match: {
+          isDeleted: false,
+          timestamp: { $lte: lessThanOneHour },
+        },
+      },
+      {
+        $unwind: '$keys',
+      },
+      {
+        $project: { key: '$keys', _id: 0 },
+      },
+    ]);
+  }
+
+  async updateDeleteAndUnsetKeys(lessThanOneHour: number) {
+    await this.documentModel.updateMany(
+      {
+        isDeleted: false,
+        timestamp: { $lte: lessThanOneHour },
+      },
+      [
+        {
+          $set: {
+            isDeleted: true,
+          },
+        },
+        {
+          $unset: ['keys'],
+        },
+      ],
+    );
   }
 }
