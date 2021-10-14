@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimiterModule, RateLimiterGuard } from 'nestjs-rate-limiter';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -17,6 +18,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ScheduleModule.forRoot(),
     DocumentModule,
     MongooseModule.forRoot(process.env.MONGO_DB_URL),
+    AuthModule,
   ],
   controllers: [],
   providers: [
