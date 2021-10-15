@@ -36,6 +36,9 @@ export class AnalyticsService {
       {
         $match: { failedReason: { $exists: true, $ne: '' } },
       },
+      {
+        $project: { timestamp: 1, failedReason: 1, opration: 1, _id: 0 },
+      },
     ]);
   }
 
