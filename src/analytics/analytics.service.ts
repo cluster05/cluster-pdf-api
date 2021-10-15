@@ -12,13 +12,14 @@ export class AnalyticsService {
   async analytics() {
     try {
       const analytic = {
-        y: await this.year(),
+        y: await this._year(),
         w: await this._weeks(),
         m: await this._months(),
         d: await this._dayOfMonth(),
         h: await this._hour(),
-        isDeleted: await this.isDeleted(),
-        failed: await this.failed(),
+        isDeleted: await this._isDeleted(),
+        failed: await this._failed(),
+        opration: await this._oprationAnalytics(),
       };
       return analytic;
     } catch (error) {
@@ -30,7 +31,7 @@ export class AnalyticsService {
     }
   }
 
-  private async failed() {
+  private async _failed() {
     return await this.documentModel.aggregate([
       {
         $match: { failedReason: { $exists: true, $ne: '' } },
@@ -38,7 +39,7 @@ export class AnalyticsService {
     ]);
   }
 
-  private async isDeleted() {
+  private async _isDeleted() {
     return await this.documentModel.aggregate([
       {
         $group: {
@@ -52,7 +53,7 @@ export class AnalyticsService {
     ]);
   }
 
-  async year() {
+  async _year() {
     return await this.documentModel.aggregate([
       {
         $group: {
@@ -122,7 +123,7 @@ export class AnalyticsService {
     ]);
   }
 
-  async oprationAnalytics() {
+  private async _oprationAnalytics() {
     return await this.documentModel.aggregate([
       {
         $group: {
