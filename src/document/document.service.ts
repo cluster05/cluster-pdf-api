@@ -138,7 +138,7 @@ export class DocumentService {
         mongoId,
       };
     } catch (error) {
-      await this.mongoReason(ERROR_MERGE, mergeDTO.mongoId);
+      await this.mongoReason(ERROR_MERGE, error, mergeDTO.mongoId);
       throw new HttpException(
         'Error occured while merging the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -177,7 +177,7 @@ export class DocumentService {
         documentId,
       };
     } catch (error) {
-      await this.mongoReason(ERROR_SPLIT, splitDTO.mongoId);
+      await this.mongoReason(ERROR_SPLIT, error, splitDTO.mongoId);
       throw new HttpException(
         'Error occured while spliting the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -206,7 +206,7 @@ export class DocumentService {
         documentId,
       };
     } catch (error) {
-      await this.mongoReason(ERROR_COMPRESS, compressDTO.mongoId);
+      await this.mongoReason(ERROR_COMPRESS, error, compressDTO.mongoId);
       throw new HttpException(
         'Error occured while compressing the file. Plase try again.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -233,7 +233,7 @@ export class DocumentService {
           );
       }
     } catch (error) {
-      await this.mongoReason(ERROR_CONVERT, convertDTO.mongoId);
+      await this.mongoReason(ERROR_CONVERT, error, convertDTO.mongoId);
       throw new HttpException(
         error?.message ||
           'Error occured while converting the file. Plase try again.',
@@ -406,10 +406,15 @@ export class DocumentService {
     return mongoOpration._id;
   }
 
-  private async mongoReason(failedReason: string, mongoId: string) {
+  private async mongoReason(
+    failedOperation: string,
+    failedReason: string,
+    mongoId: string,
+  ) {
     const oprationEnd = Date.now();
 
     const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
+      opration: failedOperation,
       oprationEnd,
       failedReason,
     });
