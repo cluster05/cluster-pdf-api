@@ -11,7 +11,7 @@ export class DeleteService {
     @InjectModel('Documents') private documentModel: Model<DocumentModel>,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async deleteDocuments() {
     const s3 = getS3();
 
