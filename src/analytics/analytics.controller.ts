@@ -5,7 +5,7 @@ import { AnalyticsService } from './analytics.service';
 export class AnalyticsController {
   constructor(private analyticsService: AnalyticsService) {}
 
-  @Get('/full')
+  @Get('')
   async analytics() {
     return await this.analyticsService.analytics();
   }
