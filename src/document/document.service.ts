@@ -408,15 +408,16 @@ export class DocumentService {
 
   private async mongoReason(
     failedOperation: string,
-    failedReason: string,
+    failedReason: any,
     mongoId: string,
   ) {
     const oprationEnd = Date.now();
+    const reason = failedReason?.message || failedReason;
 
     const mongoOpration = await this.documentModel.findByIdAndUpdate(mongoId, {
       opration: failedOperation,
       oprationEnd,
-      failedReason,
+      failedReason: reason,
     });
     return mongoOpration._id;
   }
