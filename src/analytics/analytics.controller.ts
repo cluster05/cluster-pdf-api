@@ -27,7 +27,7 @@ export class AnalyticsController {
       return await this.analyticsService.analytics();
     }
     throw new HttpException(
-      'Are you sure. You came yo right place.',
+      'Are you sure. You came to right place.',
       HttpStatus.FORBIDDEN,
     );
   }
